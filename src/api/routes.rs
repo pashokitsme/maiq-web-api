@@ -8,7 +8,7 @@ pub async fn index() -> Result<Value, ApiError> {
   Ok(json!({ "ok": true }))
 }
 
-#[get("/instantly/<mode>")]
+#[get("/naive/<mode>")]
 pub async fn get_instantly(mode: &str) -> Result<Json<Day>, ApiError> {
   let mode = match mode {
     "today" => Fetch::Today,
