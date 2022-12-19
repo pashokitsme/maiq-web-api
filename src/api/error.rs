@@ -1,3 +1,4 @@
+use maiq_parser::error::ParserError;
 use rocket::{
   http::{ContentType, Method, Status},
   response::{Responder, Result},
@@ -33,14 +34,22 @@ pub enum ApiError {
   #[error("Requested resource `{0}` not found")]
   ResourseNotFound(String),
 
+  #[error("Parser error: {0}")]
+  ParserError(ParserError),
+
   #[error("Unknown error")]
-  Unknown, // #[error("{0}")]
-           // Validation(actix_web_validator::Error),
+  Unknown,
 }
 
 impl From<sqlx::Error> for ApiError {
   fn from(err: sqlx::Error) -> Self {
     ApiError::Database(err)
+  }
+}
+
+impl From<ParserError> for ApiError {
+  fn from(err: ParserError) -> Self {
+    ApiError::ParserError(err)
   }
 }
 
@@ -59,6 +68,7 @@ impl ApiError {
       // ApiError::NotAllowed { .. } => Status::MethodNotAllowed,
       ApiError::Database(..) => Status::InternalServerError,
       ApiError::ResourseNotFound(..) => Status::NotFound,
+      ApiError::ParserError(..) => Status::InternalServerError,
       ApiError::Unknown => Status::InternalServerError,
     }
   }
@@ -71,6 +81,7 @@ impl ApiError {
       // ApiError::NotAllowed { .. } => "method_not_allowed",
       ApiError::Database(..) => "db",
       ApiError::ResourseNotFound(..) => "resource_not_found",
+      ApiError::ParserError(..) => "parser_error",
       ApiError::Unknown => "unknown",
     }
   }
@@ -95,22 +106,13 @@ pub fn not_found(req: &Request) -> ApiError {
   ApiError::NotFound(req.uri().path().to_string(), req.method())
 }
 
+// #[catch(500)]
+// pub fn internal_server_error(req: &Request) -> () {}
+
 // todo: make it work
 /*
 #[catch(405)]
 pub fn method_not_allowed(req: &Request) -> ApiError {
   ApiError::NotAllowed(req.uri().path().to_string(), req.method())
-}
-
-pub fn validation_error(conf: actix_web_validator::QueryConfig) -> actix_web_validator::QueryConfig {
-  conf.error_handler(|err, _| {
-    error::InternalError::from_response(format!("Validation error: {:?}", err), ApiError::Validation(err).error_response()).into()
-  })
-}
-
-pub fn query_error(conf: QueryConfig) -> QueryConfig {
-  conf.error_handler(|err, _| {
-    error::InternalError::from_response(format!("Query error: {:?}", err), ApiError::Query(err).error_response()).into()
-  })
 }
 */
