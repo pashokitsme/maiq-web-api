@@ -1,4 +1,4 @@
-use maiq_parser::{fetch_n_parse, timetable::Snapshot, Fetch};
+use maiq_parser::{fetch_n_parse, timetable::Snapshot};
 use rocket::{http::Status, serde::json::Json, State};
 
 use crate::{
@@ -10,7 +10,7 @@ use super::error::{ApiError, CustomApiError};
 
 #[get("/")]
 pub async fn index() -> Result<CustomApiError, ApiError> {
-  Ok(CustomApiError { cause: "index", desc: "Hey there, stranger".into(), status: Status::Ok })
+  Ok(CustomApiError { cause: "index_route", desc: "Hey there, stranger".into(), status: Status::Ok })
 }
 
 // todo: by group
@@ -21,10 +21,7 @@ pub async fn today(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiErro
     return Ok(Json(x));
   }
 
-  info!("Parsing new snapshot");
-  let snapshot = fetch_n_parse(Fetch::Today).await?.snapshot;
-  db::save(&mongo, &snapshot).await?;
-  Ok(Json(snapshot))
+  Err(ApiError::ResourseNotFound("timetable for today".into()))
 }
 
 #[get("/next")]
@@ -34,10 +31,7 @@ pub async fn next(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError
     return Ok(Json(x));
   }
 
-  info!("Parsing new snapshot");
-  let snapshot = fetch_n_parse(Fetch::Tomorrow).await?.snapshot;
-  db::save(&mongo, &snapshot).await?;
-  Ok(Json(snapshot))
+  Err(ApiError::ResourseNotFound("timetable for next day".into()))
 }
 
 #[get("/naive/<mode>")]
