@@ -21,7 +21,7 @@ pub async fn today(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiErro
     return Ok(Json(x));
   }
 
-  Err(ApiError::ResourseNotFound("timetable for today".into()))
+  Err(ApiError::NoTimetable("today".into()))
 }
 
 #[get("/next")]
@@ -31,7 +31,7 @@ pub async fn next(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError
     return Ok(Json(x));
   }
 
-  Err(ApiError::ResourseNotFound("timetable for next day".into()))
+  Err(ApiError::NoTimetable("next".into()))
 }
 
 #[get("/<uid>")]
