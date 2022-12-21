@@ -27,6 +27,19 @@ pub async fn today(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiErro
   Ok(Json(snapshot))
 }
 
+#[get("/next")]
+pub async fn next(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError> {
+  if let Some(x) = db::get_latest_next(&mongo).await? {
+    info!("Returning cached snapshot");
+    return Ok(Json(x));
+  }
+
+  info!("Parsing new snapshot");
+  let snapshot = fetch_n_parse(Fetch::Tomorrow).await?.snapshot;
+  db::save(&mongo, &snapshot).await?;
+  Ok(Json(snapshot))
+}
+
 #[get("/naive/<mode>")]
 pub async fn naive(mode: FetchParam) -> Result<Json<Snapshot>, ApiError> {
   let p = fetch_n_parse(mode.into()).await?;
