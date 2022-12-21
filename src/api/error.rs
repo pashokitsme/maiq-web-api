@@ -9,8 +9,10 @@ use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Clone, Serialize)]
-pub struct CustomError {
+pub struct CustomApiError {
   pub cause: &'static str,
+  #[serde(skip_serializing)]
+  pub status: Status,
   pub desc: String,
 }
 
@@ -29,20 +31,20 @@ pub enum ApiError {
   // #[error("Method `{1}` on route `{0}` not allowed here")]
   // NotAllowed(String, Method),
   #[error("Database error: {0}")]
-  Database(sqlx::Error),
+  Database(mongodb::error::Error),
 
   #[error("Requested resource `{0}` not found")]
   ResourseNotFound(String),
 
-  #[error("Parser error: {0}")]
+  #[error("{0}")]
   ParserError(ParserError),
 
   #[error("Unknown error")]
   Unknown,
 }
 
-impl From<sqlx::Error> for ApiError {
-  fn from(err: sqlx::Error) -> Self {
+impl From<mongodb::error::Error> for ApiError {
+  fn from(err: mongodb::error::Error) -> Self {
     ApiError::Database(err)
   }
 }
@@ -53,9 +55,9 @@ impl From<ParserError> for ApiError {
   }
 }
 
-impl Into<CustomError> for ApiError {
-  fn into(self) -> CustomError {
-    CustomError { cause: self.cause(), desc: self.to_string() }
+impl Into<CustomApiError> for ApiError {
+  fn into(self) -> CustomApiError {
+    CustomApiError { cause: self.cause(), desc: self.to_string(), status: self.status_code() }
   }
 }
 
@@ -77,7 +79,7 @@ impl ApiError {
     match self {
       ApiError::Env(..) => "env",
       ApiError::Json(..) => "json",
-      ApiError::NotFound { .. } => "route_not_found",
+      ApiError::NotFound { .. } => "route_not_matched",
       // ApiError::NotAllowed { .. } => "method_not_allowed",
       ApiError::Database(..) => "db",
       ApiError::ResourseNotFound(..) => "resource_not_found",
@@ -88,13 +90,18 @@ impl ApiError {
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for ApiError {
-  fn respond_to(self, request: &rocket::Request) -> Result<'o> {
-    let status = self.status_code();
-    let err: CustomError = self.into();
-    let res = Json(err).respond_to(request)?;
+  fn respond_to(self, request: &Request) -> Result<'o> {
+    let err: CustomApiError = self.into();
+    err.respond_to(request)
+  }
+}
+
+impl<'r, 'o: 'r> Responder<'r, 'o> for CustomApiError {
+  fn respond_to(self, request: &Request) -> Result<'o> {
+    let res = Json(&self).respond_to(request)?;
     Ok(
       Response::build_from(res)
-        .status(status)
+        .status(self.status)
         .header(ContentType::JSON)
         .finalize(),
     )

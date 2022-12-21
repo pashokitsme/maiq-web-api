@@ -1,3 +1,3 @@
 pub mod error;
-pub mod queries;
+mod queries;
 pub mod routes;

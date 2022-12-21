@@ -1,20 +1,41 @@
-use maiq_parser::{fetch_n_parse, timetable::Day, Fetch};
-use rocket::serde::json::{serde_json::json, Json, Value};
+use maiq_parser::{fetch_n_parse, timetable::Snapshot, Fetch};
+use rocket::{http::Status, serde::json::Json, State};
 
-use super::error::ApiError;
+use crate::{
+  api::queries::FetchParam,
+  db::{self, MongoClient},
+};
+
+use super::error::{ApiError, CustomApiError};
 
 #[get("/")]
-pub async fn index() -> Result<Value, ApiError> {
-  Ok(json!({ "ok": true }))
+pub async fn index() -> Result<CustomApiError, ApiError> {
+  Ok(CustomApiError { cause: "index", desc: "Hey there, stranger".into(), status: Status::Ok })
+}
+
+// todo: by group
+#[get("/today")]
+pub async fn today(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError> {
+  if let Some(x) = db::get_latest_today(&mongo).await? {
+    info!("Returning cached snapshot");
+    return Ok(Json(x));
+  }
+
+  info!("Parsing new snapshot");
+  let snapshot = fetch_n_parse(Fetch::Today).await?.snapshot;
+  db::save(&mongo, &snapshot).await?;
+  Ok(Json(snapshot))
 }
 
 #[get("/naive/<mode>")]
-pub async fn get_instantly(mode: &str) -> Result<Json<Day>, ApiError> {
-  let mode = match mode {
-    "today" => Fetch::Today,
-    "tomorrow" => Fetch::Tomorrow,
-    _ => return Err(ApiError::ResourseNotFound(mode.to_string())),
-  };
-  let day = fetch_n_parse(mode).await?;
-  Ok(Json(day.day))
+pub async fn naive(mode: FetchParam) -> Result<Json<Snapshot>, ApiError> {
+  let p = fetch_n_parse(mode.into()).await?;
+  Ok(Json(p.snapshot))
+}
+
+#[get("/update/<mode>")]
+pub async fn update(mode: FetchParam, mongo: &State<MongoClient>) -> Result<(), ApiError> {
+  let parsed = fetch_n_parse(mode.into()).await?;
+  db::save(&*mongo, &parsed.snapshot).await?;
+  Ok(())
 }
