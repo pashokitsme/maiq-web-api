@@ -9,7 +9,10 @@ mod cache;
 mod db;
 mod env;
 
-use api::{error::not_found, routes::*};
+use api::{
+  error::{internal_server_error, not_found},
+  routes::*,
+};
 use maiq_parser::Fetch;
 use rocket::Error;
 use std::time::Duration;
@@ -35,7 +38,7 @@ async fn main() -> Result<(), Error> {
   });
 
   _ = rocket::build()
-    .register("/", catchers![not_found])
+    .register("/", catchers![not_found, internal_server_error])
     .mount("/", routes![index])
     .mount("/api", routes![index])
     .mount("/api/latest/", routes![today, next])

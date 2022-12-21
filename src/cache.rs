@@ -10,7 +10,7 @@ pub async fn update(mongo: &MongoClient, fetch: Fetch) -> Result<(), ApiError> {
 
   let snapshot = fetch_n_parse(&fetch).await?.snapshot;
   let latest = db::get_by_uid(&mongo, snapshot.uid.as_str()).await?;
-  if let Some(latest) = latest {
+  if latest.is_some() {
     return Ok(());
   }
   info!("New snapshot: #{}", snapshot.uid);

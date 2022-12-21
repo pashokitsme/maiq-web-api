@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, NaiveTime, Utc};
+use chrono::{Days, Utc};
 use maiq_parser::timetable::Snapshot;
 use mongodb::{
   bson::{doc, Bson},
@@ -24,8 +24,8 @@ pub async fn save(mongo: &MongoClient, snapshot: &Snapshot) -> Result<Option<Bso
 
 pub async fn get_latest_today(mongo: &MongoClient) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = snapshots(&mongo);
-  let today = Utc::now().date_naive();
-  let today = DateTime::<Utc>::from_utc(NaiveDateTime::new(today, NaiveTime::default()), Utc).timestamp();
+  let today = current_date();
+  info!("{}", today);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
     .limit(1)
@@ -41,7 +41,8 @@ pub async fn get_latest_today(mongo: &MongoClient) -> Result<Option<Snapshot>, M
 
 pub async fn get_latest_next(mongo: &MongoClient) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = snapshots(&mongo);
-  let today = Utc::now().timestamp();
+  let today = next_date();
+  info!("{}", today);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
     .limit(1)
@@ -50,7 +51,7 @@ pub async fn get_latest_next(mongo: &MongoClient) -> Result<Option<Snapshot>, Mo
     .find(
       doc! {
             "date": {
-               "$gt": today
+               "$gte": today
             }
       },
       opts,
@@ -68,7 +69,7 @@ pub async fn get_by_uid<'a>(mongo: &MongoClient, uid: &'a str) -> Result<Option<
   let snapshots = snapshots(&mongo);
   let mut cur = snapshots.find(doc! { "uid": uid }, None).await?;
   if !cur.advance().await? {
-    warn!("Couldn't find snapshot #{}", uid);
+    warn!("Snapshot #{} not found", uid);
     return Ok(None);
   }
 
@@ -77,4 +78,24 @@ pub async fn get_by_uid<'a>(mongo: &MongoClient, uid: &'a str) -> Result<Option<
 
 fn snapshots(mongo: &MongoClient) -> Collection<Snapshot> {
   mongo.default_database().unwrap().collection("snapshots")
+}
+
+fn current_date() -> i64 {
+  Utc::now()
+    .date_naive()
+    .checked_add_days(Days::new(1))
+    .unwrap()
+    .and_hms_opt(0, 0, 0)
+    .unwrap()
+    .timestamp()
+}
+
+fn next_date() -> i64 {
+  Utc::now()
+    .date_naive()
+    .checked_add_days(Days::new(2))
+    .unwrap()
+    .and_hms_opt(0, 0, 0)
+    .unwrap()
+    .timestamp()
 }

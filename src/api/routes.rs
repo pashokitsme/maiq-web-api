@@ -40,7 +40,7 @@ pub async fn snapshot_by_id<'a>(uid: &'a str, mongo: &State<MongoClient>) -> Res
     return Ok(Json(x));
   }
 
-  Err(ApiError::ResourseNotFound(uid.into()))
+  Err(ApiError::ResourseNotFound(format!("timetable #{}", uid)))
 }
 
 #[get("/naive/<mode>")]

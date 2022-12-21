@@ -28,8 +28,9 @@ pub enum ApiError {
   #[error("Failed to match ({1}) {0}. Try something else?")]
   NotFound(String, Method),
 
-  // #[error("Method `{1}` on route `{0}` not allowed here")]
-  // NotAllowed(String, Method),
+  #[error("Timetable `{0}` is not present")]
+  NoTimetable(String),
+
   #[error("Database error: {0}")]
   Database(mongodb::error::Error),
 
@@ -39,7 +40,7 @@ pub enum ApiError {
   #[error("{0}")]
   ParserError(ParserError),
 
-  #[error("Unknown error")]
+  #[error("Internal server error")]
   Unknown,
 }
 
@@ -67,7 +68,7 @@ impl ApiError {
       ApiError::Env(..) => Status::InternalServerError,
       ApiError::Json(..) => Status::BadRequest,
       ApiError::NotFound { .. } => Status::NotFound,
-      // ApiError::NotAllowed { .. } => Status::MethodNotAllowed,
+      ApiError::NoTimetable(..) => Status::NotFound,
       ApiError::Database(..) => Status::InternalServerError,
       ApiError::ResourseNotFound(..) => Status::NotFound,
       ApiError::ParserError(..) => Status::InternalServerError,
@@ -80,7 +81,7 @@ impl ApiError {
       ApiError::Env(..) => "env",
       ApiError::Json(..) => "json",
       ApiError::NotFound { .. } => "route_not_matched",
-      // ApiError::NotAllowed { .. } => "method_not_allowed",
+      ApiError::NoTimetable(..) => "no_timetable",
       ApiError::Database(..) => "db",
       ApiError::ResourseNotFound(..) => "resource_not_found",
       ApiError::ParserError(..) => "parser_error",
@@ -113,8 +114,10 @@ pub fn not_found(req: &Request) -> ApiError {
   ApiError::NotFound(req.uri().path().to_string(), req.method())
 }
 
-// #[catch(500)]
-// pub fn internal_server_error(req: &Request) -> () {}
+#[catch(500)]
+pub fn internal_server_error(_: &Request) -> ApiError {
+  ApiError::Unknown
+}
 
 // todo: make it work
 /*
