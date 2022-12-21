@@ -37,8 +37,10 @@ async fn main() -> Result<(), Error> {
   _ = rocket::build()
     .register("/", catchers![not_found])
     .mount("/", routes![index])
-    .mount("/api/poll/", routes![index, today, next])
-    .mount("/api/dev/", routes![naive, update])
+    .mount("/api", routes![index])
+    .mount("/api/latest/", routes![today, next])
+    .mount("/api/snapshot/", routes![snapshot_by_id])
+    .mount("/api/dev/", routes![naive])
     .manage(pool_state)
     .launch()
     .await?;

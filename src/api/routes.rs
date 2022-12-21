@@ -34,15 +34,17 @@ pub async fn next(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError
   Err(ApiError::ResourseNotFound("timetable for next day".into()))
 }
 
-#[get("/naive/<mode>")]
-pub async fn naive(mode: FetchParam) -> Result<Json<Snapshot>, ApiError> {
-  let p = fetch_n_parse(mode.into()).await?;
-  Ok(Json(p.snapshot))
+#[get("/<uid>")]
+pub async fn snapshot_by_id<'a>(uid: &'a str, mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError> {
+  if let Some(x) = db::get_by_uid(&mongo, uid).await? {
+    return Ok(Json(x));
+  }
+
+  Err(ApiError::ResourseNotFound(uid.into()))
 }
 
-#[get("/update/<mode>")]
-pub async fn update(mode: FetchParam, mongo: &State<MongoClient>) -> Result<(), ApiError> {
-  let parsed = fetch_n_parse(mode.into()).await?;
-  db::save(&*mongo, &parsed.snapshot).await?;
-  Ok(())
+#[get("/naive/<mode>")]
+pub async fn naive(mode: FetchParam) -> Result<Json<Snapshot>, ApiError> {
+  let p = fetch_n_parse(&mode.into()).await?;
+  Ok(Json(p.snapshot))
 }

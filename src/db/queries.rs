@@ -56,8 +56,19 @@ pub async fn get_latest_next(mongo: &MongoClient) -> Result<Option<Snapshot>, Mo
       opts,
     )
     .await?;
-  if cur.advance().await? == false {
+  if !cur.advance().await? {
     warn!("There is no snapshots for next day");
+    return Ok(None);
+  }
+
+  Ok(Some(cur.deserialize_current()?))
+}
+
+pub async fn get_by_uid<'a>(mongo: &MongoClient, uid: &'a str) -> Result<Option<Snapshot>, MongoError> {
+  let snapshots = snapshots(&mongo);
+  let mut cur = snapshots.find(doc! { "uid": uid }, None).await?;
+  if !cur.advance().await? {
+    warn!("Couldn't find snapshot #{}", uid);
     return Ok(None);
   }
 
