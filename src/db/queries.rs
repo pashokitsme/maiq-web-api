@@ -24,7 +24,7 @@ pub async fn save(mongo: &MongoClient, snapshot: &Snapshot) -> Result<Option<Bso
 
 pub async fn get_latest_today(mongo: &MongoClient) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = snapshots(&mongo);
-  let today = current_date();
+  let today = date_timestamp(0);
   info!("{}", today);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
@@ -41,22 +41,13 @@ pub async fn get_latest_today(mongo: &MongoClient) -> Result<Option<Snapshot>, M
 
 pub async fn get_latest_next(mongo: &MongoClient) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = snapshots(&mongo);
-  let today = next_date();
-  info!("{}", today);
+  let time = date_timestamp(1);
+  info!("{}", time);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
     .limit(1)
     .build();
-  let mut cur = snapshots
-    .find(
-      doc! {
-            "date": {
-               "$gte": today
-            }
-      },
-      opts,
-    )
-    .await?;
+  let mut cur = snapshots.find(doc! { "date": { "$gte": time } }, opts).await?;
   if !cur.advance().await? {
     warn!("There is no snapshots for next day");
     return Ok(None);
@@ -80,20 +71,10 @@ fn snapshots(mongo: &MongoClient) -> Collection<Snapshot> {
   mongo.default_database().unwrap().collection("snapshots")
 }
 
-fn current_date() -> i64 {
+fn date_timestamp(offset: u64) -> i64 {
   Utc::now()
     .date_naive()
-    .checked_add_days(Days::new(1))
-    .unwrap()
-    .and_hms_opt(0, 0, 0)
-    .unwrap()
-    .timestamp()
-}
-
-fn next_date() -> i64 {
-  Utc::now()
-    .date_naive()
-    .checked_add_days(Days::new(2))
+    .checked_add_days(Days::new(offset))
     .unwrap()
     .and_hms_opt(0, 0, 0)
     .unwrap()
