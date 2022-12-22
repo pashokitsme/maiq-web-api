@@ -6,9 +6,9 @@ use mongodb::{
   Collection,
 };
 
-use super::{MongoClient, MongoError};
+use super::{MongoError, MongoPool};
 
-pub async fn save(mongo: &MongoClient, snapshot: &Snapshot) -> Result<Option<Bson>, MongoError> {
+pub async fn save(mongo: &MongoPool, snapshot: &Snapshot) -> Result<Option<Bson>, MongoError> {
   let snapshots = snapshots(&mongo);
   let mut cur = snapshots.find(doc! { "uid": &snapshot.uid }, None).await?;
 
@@ -22,16 +22,15 @@ pub async fn save(mongo: &MongoClient, snapshot: &Snapshot) -> Result<Option<Bso
   Ok(Some(res.inserted_id))
 }
 
-pub async fn get_latest_today(mongo: &MongoClient) -> Result<Option<Snapshot>, MongoError> {
+pub async fn get_latest_today(mongo: &MongoPool) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = snapshots(&mongo);
   let today = date_timestamp(0);
-  info!("{}", today);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
     .limit(1)
     .build();
   let mut cur = snapshots.find(doc! { "date": today }, opts).await?;
-  if cur.advance().await? == false {
+  if !cur.advance().await? {
     warn!("There is no snapshots for today");
     return Ok(None);
   }
@@ -39,10 +38,9 @@ pub async fn get_latest_today(mongo: &MongoClient) -> Result<Option<Snapshot>, M
   Ok(Some(cur.deserialize_current()?))
 }
 
-pub async fn get_latest_next(mongo: &MongoClient) -> Result<Option<Snapshot>, MongoError> {
+pub async fn get_latest_next(mongo: &MongoPool) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = snapshots(&mongo);
   let time = date_timestamp(1);
-  info!("{}", time);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
     .limit(1)
@@ -56,7 +54,7 @@ pub async fn get_latest_next(mongo: &MongoClient) -> Result<Option<Snapshot>, Mo
   Ok(Some(cur.deserialize_current()?))
 }
 
-pub async fn get_by_uid<'a>(mongo: &MongoClient, uid: &'a str) -> Result<Option<Snapshot>, MongoError> {
+pub async fn get_by_uid<'a>(mongo: &MongoPool, uid: &'a str) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = snapshots(&mongo);
   let mut cur = snapshots.find(doc! { "uid": uid }, None).await?;
   if !cur.advance().await? {
@@ -67,7 +65,7 @@ pub async fn get_by_uid<'a>(mongo: &MongoClient, uid: &'a str) -> Result<Option<
   Ok(Some(cur.deserialize_current()?))
 }
 
-fn snapshots(mongo: &MongoClient) -> Collection<Snapshot> {
+fn snapshots(mongo: &MongoPool) -> Collection<Snapshot> {
   mongo.default_database().unwrap().collection("snapshots")
 }
 

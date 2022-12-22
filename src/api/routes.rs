@@ -3,7 +3,7 @@ use rocket::{http::Status, serde::json::Json, State};
 
 use crate::{
   api::queries::FetchParam,
-  db::{self, MongoClient},
+  db::{self, MongoPool},
 };
 
 use super::error::{ApiError, CustomApiError};
@@ -15,7 +15,7 @@ pub async fn index() -> Result<CustomApiError, ApiError> {
 
 // todo: by group
 #[get("/today")]
-pub async fn today(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError> {
+pub async fn today(mongo: &State<MongoPool>) -> Result<Json<Snapshot>, ApiError> {
   if let Some(x) = db::get_latest_today(&mongo).await? {
     info!("Returning cached snapshot");
     return Ok(Json(x));
@@ -25,7 +25,7 @@ pub async fn today(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiErro
 }
 
 #[get("/next")]
-pub async fn next(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError> {
+pub async fn next(mongo: &State<MongoPool>) -> Result<Json<Snapshot>, ApiError> {
   if let Some(x) = db::get_latest_next(&mongo).await? {
     info!("Returning cached snapshot");
     return Ok(Json(x));
@@ -35,7 +35,7 @@ pub async fn next(mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError
 }
 
 #[get("/<uid>")]
-pub async fn snapshot_by_id<'a>(uid: &'a str, mongo: &State<MongoClient>) -> Result<Json<Snapshot>, ApiError> {
+pub async fn snapshot_by_id<'a>(uid: &'a str, mongo: &State<MongoPool>) -> Result<Json<Snapshot>, ApiError> {
   if let Some(x) = db::get_by_uid(&mongo, uid).await? {
     return Ok(Json(x));
   }

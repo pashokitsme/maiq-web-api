@@ -5,11 +5,11 @@ use mongodb::{options::ClientOptions, Client};
 use crate::env;
 
 pub use queries::*;
-pub type MongoClient = Client;
+pub type MongoPool = Client;
 pub type MongoError = mongodb::error::Error;
 
 // todo: validate collections on init
-pub async fn init() -> Result<MongoClient, MongoError> {
+pub async fn init() -> Result<MongoPool, MongoError> {
   let url = dotenvy::var(env::DB_URL).unwrap();
   info!("Connecting to {}", url);
 
@@ -17,7 +17,7 @@ pub async fn init() -> Result<MongoClient, MongoError> {
   opts.app_name = Some("maiq".into());
   opts.default_database = Some("bafoksqiyr3wxpf".into());
 
-  let client = MongoClient::with_options(opts)?;
+  let client = MongoPool::with_options(opts)?;
 
   Ok(client)
 }

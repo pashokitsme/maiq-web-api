@@ -2,10 +2,10 @@ use maiq_parser::{fetch_n_parse, Fetch};
 
 use crate::{
   api::error::ApiError,
-  db::{self, MongoClient},
+  db::{self, MongoPool},
 };
 
-pub async fn update(mongo: &MongoClient, fetch: Fetch) -> Result<(), ApiError> {
+pub async fn update(mongo: &MongoPool, fetch: Fetch) -> Result<(), ApiError> {
   info!("Updating cache for {:?}..", fetch);
 
   let snapshot = fetch_n_parse(&fetch).await?.snapshot;
