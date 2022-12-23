@@ -21,9 +21,9 @@ use tokio::{sync::Mutex, time};
 
 #[rocket::main]
 async fn main() -> Result<(), Error> {
-  // db::init(&pool).await.map_err(CustomError::new)?;
   tracing_subscriber::fmt::init();
   env::check_env_vars();
+
   let pool = db::init().await.expect("Error while connecting to database");
   let cache = Arc::new(Mutex::new(Cache::default()));
 

@@ -71,7 +71,6 @@ fn snapshots(mongo: &MongoPool) -> Collection<Snapshot> {
 
 fn date_timestamp(offset: u64) -> i64 {
   let now = Utc::now().naive_utc() + Duration::seconds(60 * 60 * 3);
-  info!("{}", now);
   now
     .date()
     .checked_add_days(Days::new(offset))
