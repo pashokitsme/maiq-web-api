@@ -28,8 +28,8 @@ pub enum ApiError {
   #[error("Failed to match ({1}) {0}. Try something else?")]
   NotFound(String, Method),
 
-  #[error("Timetable `{0}` is not present")]
-  NoTimetable(String),
+  #[error("Timetable not found")]
+  NoTimetable(),
 
   #[error("Database error: {0}")]
   Database(mongodb::error::Error),

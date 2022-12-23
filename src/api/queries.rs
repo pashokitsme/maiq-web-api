@@ -14,7 +14,7 @@ impl<'a> FromParam<'a> for FetchParam {
   fn from_param(param: &'a str) -> Result<Self, Self::Error> {
     match param {
       "today" => Ok(FetchParam::Today),
-      "tomorrow" => Ok(FetchParam::Tomorrow),
+      "tomorrow" | "next" => Ok(FetchParam::Tomorrow),
       _ => Err(ApiError::ResourseNotFound(param.to_string())),
     }
   }

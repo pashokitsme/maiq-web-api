@@ -1,4 +1,4 @@
-use chrono::{Days, Utc};
+use chrono::{Days, Duration, Utc};
 use maiq_parser::timetable::Snapshot;
 use mongodb::{
   bson::{doc, Bson},
@@ -70,8 +70,10 @@ fn snapshots(mongo: &MongoPool) -> Collection<Snapshot> {
 }
 
 fn date_timestamp(offset: u64) -> i64 {
-  Utc::now()
-    .date_naive()
+  let now = Utc::now().naive_utc() + Duration::seconds(60 * 60 * 3);
+  info!("{}", now);
+  now
+    .date()
     .checked_add_days(Days::new(offset))
     .unwrap()
     .and_hms_opt(0, 0, 0)

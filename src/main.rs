@@ -13,10 +13,11 @@ use api::{
   error::{internal_server_error, not_found},
   routes::*,
 };
+use cache::Cache;
 use maiq_parser::Fetch;
 use rocket::Error;
-use std::time::Duration;
-use tokio::time;
+use std::{sync::Arc, time::Duration};
+use tokio::{sync::Mutex, time};
 
 #[rocket::main]
 async fn main() -> Result<(), Error> {
@@ -24,27 +25,30 @@ async fn main() -> Result<(), Error> {
   tracing_subscriber::fmt::init();
   env::check_env_vars();
   let pool = db::init().await.expect("Error while connecting to database");
-  let pool_state = pool.clone();
+  let cache = Arc::new(Mutex::new(Cache::default()));
+
+  let pool_ref = pool.clone();
+  let mut cache_ref = cache.clone();
 
   tokio::spawn(async move {
     let mut interval = time::interval(Duration::from_secs(60 * 5));
-    let mut interval_between = time::interval(Duration::from_secs(15));
+    let interval_chrono_duration = chrono::Duration::milliseconds(60 * 5 * 1000);
     loop {
       interval.tick().await;
-      _ = cache::update(&pool, Fetch::Today).await;
-      interval_between.tick().await;
-      _ = cache::update(&pool, Fetch::Tomorrow).await;
+      _ = cache::update(&pool_ref, Fetch::Today, &mut cache_ref, &interval_chrono_duration).await;
+      _ = cache::update(&pool_ref, Fetch::Tomorrow, &mut cache_ref, &interval_chrono_duration).await;
     }
   });
+
+  let pool_ref = pool.clone();
+  let cache_ref = cache.clone();
 
   _ = rocket::build()
     .register("/", catchers![not_found, internal_server_error])
     .mount("/", routes![index])
-    .mount("/api", routes![index])
-    .mount("/api/latest/", routes![today, next])
-    .mount("/api/snapshot/", routes![snapshot_by_id])
-    .mount("/api/dev/", routes![naive])
-    .manage(pool_state)
+    .mount("/api", routes![index, latest, poll, snapshot_by_id, naive])
+    .manage(pool_ref)
+    .manage(cache_ref)
     .launch()
     .await?;
   Ok(())
