@@ -1,10 +1,11 @@
-use chrono::{Days, Duration, Utc};
 use maiq_parser::timetable::Snapshot;
 use mongodb::{
   bson::{doc, Bson},
   options::FindOptions,
   Collection,
 };
+
+use crate::utils;
 
 use super::{MongoError, MongoPool};
 
@@ -24,7 +25,7 @@ pub async fn save(mongo: &MongoPool, snapshot: &Snapshot) -> Result<Option<Bson>
 
 pub async fn get_latest_today(mongo: &MongoPool) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = snapshots(&mongo);
-  let today = date_timestamp(0);
+  let today = utils::date_timestamp(0);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
     .limit(1)
@@ -40,7 +41,7 @@ pub async fn get_latest_today(mongo: &MongoPool) -> Result<Option<Snapshot>, Mon
 
 pub async fn get_latest_next(mongo: &MongoPool) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = snapshots(&mongo);
-  let time = date_timestamp(1);
+  let time = utils::date_timestamp(1);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
     .limit(1)
@@ -67,15 +68,4 @@ pub async fn get_by_uid<'a>(mongo: &MongoPool, uid: &'a str) -> Result<Option<Sn
 
 fn snapshots(mongo: &MongoPool) -> Collection<Snapshot> {
   mongo.default_database().unwrap().collection("snapshots")
-}
-
-fn date_timestamp(offset: u64) -> i64 {
-  let now = Utc::now().naive_utc() + Duration::seconds(60 * 60 * 3);
-  now
-    .date()
-    .checked_add_days(Days::new(offset))
-    .unwrap()
-    .and_hms_opt(0, 0, 0)
-    .unwrap()
-    .timestamp()
 }

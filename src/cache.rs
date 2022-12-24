@@ -8,6 +8,7 @@ use tokio::sync::Mutex;
 use crate::{
   api::error::ApiError,
   db::{self, MongoPool},
+  utils,
 };
 
 #[derive(Serialize, Debug, Clone)]
@@ -44,7 +45,13 @@ pub async fn update<'a>(
   locked_cache.next_update = Some(Utc::now() + interval.clone());
 
   match fetch {
-    Fetch::Today => locked_cache.latest_today_uid = Some(snapshot.uid.clone()),
+    Fetch::Today => {
+      let cloned = snapshot.clone();
+      locked_cache.latest_today_uid = match cloned.date.timestamp() {
+        x if x == utils::date_timestamp(0) => Some(cloned.uid),
+        _ => None,
+      }
+    }
     Fetch::Tomorrow => locked_cache.latest_next_uid = Some(snapshot.uid.clone()),
   }
 

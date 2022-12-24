@@ -8,6 +8,7 @@ mod api;
 mod cache;
 mod db;
 mod env;
+mod utils;
 
 use api::{
   error::{internal_server_error, not_found},
