@@ -25,7 +25,7 @@ pub async fn latest(fetch: FetchParam, mongo: &State<MongoPool>) -> Result<Json<
     FetchParam::Tomorrow => db::get_latest_next(&mongo).await?,
   };
   if let Some(x) = snapshot {
-    info!("Returning cached snapshot #{}", x.uid);
+    debug!("Returning cached snapshot #{}", x.uid);
     return Ok(Json(x));
   }
 

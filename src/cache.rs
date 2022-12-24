@@ -48,12 +48,12 @@ pub async fn update<'a>(
     Fetch::Tomorrow => locked_cache.latest_next_uid = Some(snapshot.uid.clone()),
   }
 
-  info!("Set cache: {:?}", &locked_cache);
+  debug!("Set cache: {:?}", &locked_cache);
 
   if latest.is_some() {
     return Ok(());
   }
-  info!("New snapshot: #{}", &snapshot.uid);
+
   db::save(&mongo, &snapshot).await?;
   Ok(())
 }
