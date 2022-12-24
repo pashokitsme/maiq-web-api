@@ -57,10 +57,9 @@ pub async fn update<'a>(
 
   debug!("Set cache: {:?}", &locked_cache);
 
-  if latest.is_some() {
-    return Ok(());
+  if latest.is_none() {
+    db::save(&mongo, &snapshot).await?;
   }
 
-  db::save(&mongo, &snapshot).await?;
   Ok(())
 }
