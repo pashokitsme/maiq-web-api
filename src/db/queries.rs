@@ -1,30 +1,12 @@
 use maiq_parser::timetable::Snapshot;
-use mongodb::{
-  bson::{doc, Bson},
-  options::FindOptions,
-  Collection,
-};
+use mongodb::{bson::doc, options::FindOptions};
 
 use crate::utils;
 
-use super::{MongoError, MongoPool};
-
-pub async fn save(mongo: &MongoPool, snapshot: &Snapshot) -> Result<Option<Bson>, MongoError> {
-  let snapshots = snapshots(&mongo);
-  let mut cur = snapshots.find(doc! { "uid": &snapshot.uid }, None).await?;
-
-  if cur.advance().await? == true {
-    info!("That snapshot #{} already exists", snapshot.uid);
-    return Ok(None);
-  }
-
-  info!("Saving new snapshot #{}", snapshot.uid);
-  let res = snapshots.insert_one(snapshot, None).await?;
-  Ok(Some(res.inserted_id))
-}
+use super::{get_snapshots, MongoError, MongoPool};
 
 pub async fn get_latest_today(mongo: &MongoPool) -> Result<Option<Snapshot>, MongoError> {
-  let snapshots = snapshots(&mongo);
+  let snapshots = get_snapshots(&mongo);
   let today = utils::date_timestamp(0);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
@@ -40,7 +22,7 @@ pub async fn get_latest_today(mongo: &MongoPool) -> Result<Option<Snapshot>, Mon
 }
 
 pub async fn get_latest_next(mongo: &MongoPool) -> Result<Option<Snapshot>, MongoError> {
-  let snapshots = snapshots(&mongo);
+  let snapshots = get_snapshots(&mongo);
   let time = utils::date_timestamp(1);
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
@@ -56,7 +38,7 @@ pub async fn get_latest_next(mongo: &MongoPool) -> Result<Option<Snapshot>, Mong
 }
 
 pub async fn get_by_uid<'a>(mongo: &MongoPool, uid: &'a str) -> Result<Option<Snapshot>, MongoError> {
-  let snapshots = snapshots(&mongo);
+  let snapshots = get_snapshots(&mongo);
   let mut cur = snapshots.find(doc! { "uid": uid }, None).await?;
   if !cur.advance().await? {
     warn!("Snapshot #{} not found", uid);
@@ -64,8 +46,4 @@ pub async fn get_by_uid<'a>(mongo: &MongoPool, uid: &'a str) -> Result<Option<Sn
   }
 
   Ok(Some(cur.deserialize_current()?))
-}
-
-fn snapshots(mongo: &MongoPool) -> Collection<Snapshot> {
-  mongo.default_database().unwrap().collection("snapshots")
 }

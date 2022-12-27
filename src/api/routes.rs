@@ -5,7 +5,7 @@ use rocket::{http::Status, serde::json::Json, State};
 use tokio::sync::Mutex;
 
 use crate::{
-  api::queries::FetchParam,
+  api::FetchParam,
   cache::Cache,
   db::{self, MongoPool},
 };

@@ -1,9 +1,12 @@
+pub mod commands;
 pub mod queries;
 
-use mongodb::{options::ClientOptions, Client};
+use maiq_parser::timetable::Snapshot;
+use mongodb::{options::ClientOptions, Client, Collection};
 
 use crate::env;
 
+pub use commands::*;
 pub use queries::*;
 pub type MongoPool = Client;
 pub type MongoError = mongodb::error::Error;
@@ -20,4 +23,8 @@ pub async fn init() -> Result<MongoPool, MongoError> {
   let client = MongoPool::with_options(opts)?;
 
   Ok(client)
+}
+
+fn get_snapshots(mongo: &MongoPool) -> Collection<Snapshot> {
+  mongo.default_database().unwrap().collection("snapshots")
 }
