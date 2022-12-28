@@ -46,8 +46,8 @@ pub async fn update<'a>(
 
   match fetch {
     Fetch::Today => {
-      locked_cache.latest_today_uid = match snapshot.date.timestamp() {
-        x if x == utils::date_timestamp(0) => Some(snapshot.uid.clone()),
+      locked_cache.latest_today_uid = match snapshot.date {
+        x if x == utils::current_date(0) => Some(snapshot.uid.clone()),
         _ => None,
       }
     }
@@ -57,7 +57,7 @@ pub async fn update<'a>(
   debug!("Set cache: {:?}", &locked_cache);
 
   if latest.is_none() {
-    db::save(&mongo, &snapshot).await?;
+    db::save(&mongo, snapshot).await?;
   }
 
   Ok(())
