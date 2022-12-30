@@ -1,4 +1,4 @@
-use maiq_parser::timetable::Snapshot;
+use maiq_parser::Snapshot;
 use mongodb::bson::{doc, Bson};
 
 use crate::db::{get_snapshots_as_model, SnapshotModel};

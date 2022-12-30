@@ -10,7 +10,7 @@ pub use queries::*;
 pub type MongoPool = Client;
 pub type MongoError = mongodb::error::Error;
 
-use maiq_parser::timetable::{Group, Snapshot};
+use maiq_parser::{Group, Snapshot};
 use mongodb::bson::{doc, DateTime};
 use serde::{Deserialize, Serialize};
 
@@ -20,8 +20,8 @@ pub async fn init() -> Result<MongoPool, MongoError> {
   info!("Connecting to {}", url);
 
   let mut opts = ClientOptions::parse(url).await?;
-  opts.app_name = Some("maiq".into());
-  opts.default_database = Some("bafoksqiyr3wxpf".into());
+  opts.app_name = Some("maiq-web".into());
+  opts.default_database = Some(env::var(env::DEFAULT_DB).unwrap());
 
   let client = MongoPool::with_options(opts)?;
 

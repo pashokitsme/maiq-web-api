@@ -1,4 +1,4 @@
-use maiq_parser::timetable::Snapshot;
+use maiq_parser::Snapshot;
 use mongodb::{
   bson::{doc, DateTime},
   options::FindOptions,
