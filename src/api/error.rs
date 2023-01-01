@@ -2,7 +2,7 @@ use maiq_parser::error::ParserError;
 use rocket::{
   http::{ContentType, Method, Status},
   response::{Responder, Result},
-  serde::json::{self, Json},
+  serde::json::Json,
   Request, Response,
 };
 use serde::Serialize;
@@ -16,15 +16,8 @@ pub struct CustomApiError {
   pub desc: String,
 }
 
-#[allow(dead_code)]
 #[derive(Error, Debug)]
 pub enum ApiError {
-  #[error("Enviroment error")]
-  Env(dotenvy::Error),
-
-  #[error("{0}")]
-  Json(json::Error<'static>),
-
   #[error("Failed to match ({1}) {0}. Try something else?")]
   NotFound(String, Method),
 
@@ -65,8 +58,6 @@ impl Into<CustomApiError> for ApiError {
 impl ApiError {
   fn status_code(&self) -> Status {
     match self {
-      ApiError::Env(..) => Status::InternalServerError,
-      ApiError::Json(..) => Status::BadRequest,
       ApiError::NotFound { .. } => Status::NotFound,
       ApiError::NoTimetable(..) => Status::NotFound,
       ApiError::Database(..) => Status::InternalServerError,
@@ -78,13 +69,11 @@ impl ApiError {
 
   fn cause(&self) -> &'static str {
     match self {
-      ApiError::Env(..) => "env",
-      ApiError::Json(..) => "json",
       ApiError::NotFound { .. } => "route_not_matched",
       ApiError::NoTimetable(..) => "no_timetable",
-      ApiError::Database(..) => "db",
+      ApiError::Database(..) => "db_err",
       ApiError::ResourseNotFound(..) => "resource_not_found",
-      ApiError::ParserError(..) => "parser_error",
+      ApiError::ParserError(..) => "internal_parser_err",
       ApiError::Unknown => "unknown",
     }
   }
