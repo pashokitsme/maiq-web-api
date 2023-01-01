@@ -20,7 +20,7 @@ impl<'a> FromParam<'a> for FetchParam {
     match param {
       "today" => Ok(FetchParam::Today),
       "tomorrow" | "next" => Ok(FetchParam::Tomorrow),
-      _ => Err(ApiError::ResourseNotFound(param.to_string())),
+      _ => Err(ApiError::TimetableNotFound(param.to_string())),
     }
   }
 }
@@ -30,6 +30,15 @@ impl Into<Fetch> for FetchParam {
     match self {
       FetchParam::Today => Fetch::Today,
       FetchParam::Tomorrow => Fetch::Tomorrow,
+    }
+  }
+}
+
+impl ToString for FetchParam {
+  fn to_string(&self) -> String {
+    match self {
+      FetchParam::Today => "today".into(),
+      FetchParam::Tomorrow => "next".into(),
     }
   }
 }

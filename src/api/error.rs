@@ -21,14 +21,11 @@ pub enum ApiError {
   #[error("Failed to match ({1}) {0}. Try something else?")]
   NotFound(String, Method),
 
-  #[error("Timetable not found")]
-  NoTimetable(),
-
   #[error("Database error: {0}")]
   Database(mongodb::error::Error),
 
-  #[error("Requested resource `{0}` not found")]
-  ResourseNotFound(String),
+  #[error("Requested timetable `{0}` not found")]
+  TimetableNotFound(String),
 
   #[error("{0}")]
   ParserError(ParserError),
@@ -59,9 +56,8 @@ impl ApiError {
   fn status_code(&self) -> Status {
     match self {
       ApiError::NotFound { .. } => Status::NotFound,
-      ApiError::NoTimetable(..) => Status::NotFound,
       ApiError::Database(..) => Status::InternalServerError,
-      ApiError::ResourseNotFound(..) => Status::NotFound,
+      ApiError::TimetableNotFound(..) => Status::NotFound,
       ApiError::ParserError(..) => Status::InternalServerError,
       ApiError::Unknown => Status::InternalServerError,
     }
@@ -70,9 +66,8 @@ impl ApiError {
   fn cause(&self) -> &'static str {
     match self {
       ApiError::NotFound { .. } => "route_not_matched",
-      ApiError::NoTimetable(..) => "no_timetable",
       ApiError::Database(..) => "db_err",
-      ApiError::ResourseNotFound(..) => "resource_not_found",
+      ApiError::TimetableNotFound(..) => "timetable_not_found",
       ApiError::ParserError(..) => "internal_parser_err",
       ApiError::Unknown => "unknown",
     }

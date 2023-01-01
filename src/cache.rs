@@ -38,11 +38,11 @@ pub async fn update<'a>(
 ) -> Result<(), ApiError> {
   info!("Updating cache for {:?}..", fetch);
 
-  let snapshot = fetch_n_parse(&fetch).await?.snapshot;
-  let latest = db::get_by_uid(&mongo, snapshot.uid.as_str()).await?;
   let mut locked_cache = cache.lock().await;
   locked_cache.last_updated = Some(Utc::now());
   locked_cache.next_update = Some(Utc::now() + interval.clone());
+  let snapshot = fetch_n_parse(&fetch).await?.snapshot;
+  let latest = db::get_by_uid(&mongo, snapshot.uid.as_str()).await?;
 
   match fetch {
     Fetch::Today => {

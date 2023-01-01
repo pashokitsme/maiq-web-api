@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use maiq_parser::{fetch_n_parse, timetable::Snapshot};
+use maiq_parser::timetable::Snapshot;
 use rocket::{http::Status, serde::json::Json, State};
 use tokio::sync::Mutex;
 
@@ -24,7 +24,7 @@ pub async fn latest(fetch: FetchParam, mongo: &State<MongoPool>) -> Result<Json<
     FetchParam::Tomorrow => db::get_latest_next(&mongo).await?,
   }
   .map(|s| Json(s))
-  .ok_or(ApiError::NoTimetable())
+  .ok_or(ApiError::TimetableNotFound(fetch.to_string()))
 }
 
 #[get("/latest/<fetch>/<group>")]
@@ -38,7 +38,7 @@ pub async fn latest_group<'g>(
     FetchParam::Tomorrow => db::get_latest_next(&mongo).await?,
   }
   .map(|s| Json(TinySnapshot::new_from_snapshot(group, &s)))
-  .ok_or(ApiError::NoTimetable())
+  .ok_or(ApiError::TimetableNotFound(fetch.to_string()))
 }
 
 #[get("/poll")]
@@ -51,14 +51,5 @@ pub async fn snapshot_by_id<'a>(uid: &'a str, mongo: &State<MongoPool>) -> Resul
   db::get_by_uid(&mongo, uid)
     .await?
     .map(|s| Json(s))
-    .ok_or(ApiError::ResourseNotFound(format!("timetable #{}", uid)))
-}
-
-#[deprecated]
-#[get("/naive/<fetch>")]
-pub async fn naive(fetch: FetchParam) -> Result<Json<Snapshot>, ApiError> {
-  fetch_n_parse(&fetch.into())
-    .await
-    .map(|p| Json(p.snapshot))
-    .map_err(|e| ApiError::from(e))
+    .ok_or(ApiError::TimetableNotFound(uid.into()))
 }
