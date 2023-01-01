@@ -47,7 +47,7 @@ async fn main() -> Result<(), Error> {
   _ = rocket::build()
     .register("/", catchers![not_found, internal_server_error])
     .mount("/", routes![index])
-    .mount("/api", routes![index, latest, poll, snapshot_by_id, naive])
+    .mount("/api", routes![index, latest, latest_group, poll, snapshot_by_id])
     .manage(pool_ref)
     .manage(cache_ref)
     .launch()

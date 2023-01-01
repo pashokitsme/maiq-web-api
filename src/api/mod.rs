@@ -1,5 +1,7 @@
-use maiq_parser::Fetch;
+use chrono::{DateTime, Utc};
+use maiq_parser::{Fetch, Group, Snapshot};
 use rocket::request::FromParam;
+use serde::Serialize;
 
 use self::error::ApiError;
 
@@ -29,5 +31,25 @@ impl Into<Fetch> for FetchParam {
       FetchParam::Today => Fetch::Today,
       FetchParam::Tomorrow => Fetch::Tomorrow,
     }
+  }
+}
+
+#[derive(Serialize)]
+pub struct TinySnapshot {
+  pub uid: String,
+  pub date: DateTime<Utc>,
+  pub parsed_date: DateTime<Utc>,
+  pub group: Option<Group>,
+}
+
+impl TinySnapshot {
+  pub fn new_from_snapshot<'a>(name: &'a str, snapshot: &Snapshot) -> Self {
+    let group = snapshot
+      .groups
+      .iter()
+      .find(|g| g.name == name)
+      .and_then(|g| Some(g.to_owned()));
+
+    Self { uid: snapshot.uid.clone(), date: snapshot.date, parsed_date: snapshot.parsed_date, group }
   }
 }

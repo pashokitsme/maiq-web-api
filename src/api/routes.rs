@@ -5,7 +5,7 @@ use rocket::{http::Status, serde::json::Json, State};
 use tokio::sync::Mutex;
 
 use crate::{
-  api::FetchParam,
+  api::{FetchParam, TinySnapshot},
   cache::Cache,
   db::{self, MongoPool},
 };
@@ -17,7 +17,6 @@ pub async fn index() -> Result<CustomApiError, ApiError> {
   Ok(CustomApiError { cause: "index_route", desc: "Hey there, stranger".into(), status: Status::Ok })
 }
 
-// todo: grouping by group name
 #[get("/latest/<fetch>")]
 pub async fn latest(fetch: FetchParam, mongo: &State<MongoPool>) -> Result<Json<Snapshot>, ApiError> {
   match fetch {
@@ -25,6 +24,20 @@ pub async fn latest(fetch: FetchParam, mongo: &State<MongoPool>) -> Result<Json<
     FetchParam::Tomorrow => db::get_latest_next(&mongo).await?,
   }
   .map(|s| Json(s))
+  .ok_or(ApiError::NoTimetable())
+}
+
+#[get("/latest/<fetch>/<group>")]
+pub async fn latest_group<'g>(
+  fetch: FetchParam,
+  group: &'g str,
+  mongo: &State<MongoPool>,
+) -> Result<Json<TinySnapshot>, ApiError> {
+  match fetch {
+    FetchParam::Today => db::get_latest_today(&mongo).await?,
+    FetchParam::Tomorrow => db::get_latest_next(&mongo).await?,
+  }
+  .map(|s| Json(TinySnapshot::new_from_snapshot(group, &s)))
   .ok_or(ApiError::NoTimetable())
 }
 
@@ -41,6 +54,7 @@ pub async fn snapshot_by_id<'a>(uid: &'a str, mongo: &State<MongoPool>) -> Resul
     .ok_or(ApiError::ResourseNotFound(format!("timetable #{}", uid)))
 }
 
+#[deprecated]
 #[get("/naive/<fetch>")]
 pub async fn naive(fetch: FetchParam) -> Result<Json<Snapshot>, ApiError> {
   fetch_n_parse(&fetch.into())

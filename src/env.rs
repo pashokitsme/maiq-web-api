@@ -10,7 +10,7 @@ macro_rules! env_var {
 }
 
 env_var!(DB_URL, "DATABASE_CONNECTION_URL");
-env_var!(DEFAULT_DB, "DEFAULT_DATABASE_URL");
+env_var!(DEFAULT_DB, "DEFAULT_DATABASE_NAME");
 
 pub fn parse_var<T: FromStr>(var: &'static str) -> Option<T> {
   self::var(var).and_then(|x| x.parse().ok())
@@ -35,6 +35,7 @@ pub fn check_env_vars() {
   let mut failed = false;
 
   failed |= !check::<String>(DB_URL);
+  failed |= !check::<String>(DEFAULT_DB);
 
   failed.then(|| panic!("Not all environment args are set"));
 }
