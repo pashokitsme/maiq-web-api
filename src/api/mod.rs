@@ -20,7 +20,7 @@ impl<'a> FromParam<'a> for FetchParam {
     match param {
       "today" => Ok(FetchParam::Today),
       "tomorrow" | "next" => Ok(FetchParam::Tomorrow),
-      _ => Err(ApiError::TimetableNotFound(param.to_string())),
+      _ => Err(ApiError::SnapshotNotFound(param.to_string())),
     }
   }
 }

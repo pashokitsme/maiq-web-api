@@ -24,7 +24,7 @@ pub async fn latest(fetch: FetchParam, mongo: &State<MongoPool>) -> Result<Json<
     FetchParam::Tomorrow => db::get_latest_next(&mongo).await?,
   }
   .map(|s| Json(s))
-  .ok_or(ApiError::TimetableNotFound(fetch.to_string()))
+  .ok_or(ApiError::SnapshotNotFound(fetch.to_string()))
 }
 
 #[get("/latest/<fetch>/<group>")]
@@ -38,7 +38,7 @@ pub async fn latest_group<'g>(
     FetchParam::Tomorrow => db::get_latest_next(&mongo).await?,
   }
   .map(|s| Json(TinySnapshot::new_from_snapshot(group, &s)))
-  .ok_or(ApiError::TimetableNotFound(fetch.to_string()))
+  .ok_or(ApiError::SnapshotNotFound(fetch.to_string()))
 }
 
 #[get("/poll")]
@@ -51,5 +51,5 @@ pub async fn snapshot_by_id<'a>(uid: &'a str, mongo: &State<MongoPool>) -> Resul
   db::get_by_uid(&mongo, uid)
     .await?
     .map(|s| Json(s))
-    .ok_or(ApiError::TimetableNotFound(uid.into()))
+    .ok_or(ApiError::SnapshotNotFound(uid.into()))
 }

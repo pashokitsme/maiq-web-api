@@ -44,7 +44,7 @@ pub async fn get_by_uid<'a>(mongo: &MongoPool, uid: &'a str) -> Result<Option<Sn
   let snapshots = get_snapshots_as_model(&mongo);
   let mut cur = snapshots.find(doc! { "uid": uid }, None).await?;
   if !cur.advance().await? {
-    warn!("Snapshot #{} not found", uid);
+    warn!("Snapshot {} not found", uid);
     return Ok(None);
   }
 

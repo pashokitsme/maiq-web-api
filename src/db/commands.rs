@@ -10,11 +10,11 @@ pub async fn save(mongo: &MongoPool, snapshot: Snapshot) -> Result<Option<Bson>,
   let mut cur = snapshots.find(doc! { "uid": &snapshot.uid }, None).await?;
 
   if cur.advance().await? == true {
-    info!("Snapshot #{} already exists", snapshot.uid);
+    info!("Snapshot {} already exists", snapshot.uid);
     return Ok(None);
   }
 
-  info!("Saving new snapshot #{}", snapshot.uid);
+  info!("Saving new snapshot {}", snapshot.uid);
   let snapshot_internal = SnapshotModel::from(snapshot);
   let res = snapshots.insert_one(snapshot_internal, None).await?;
   Ok(Some(res.inserted_id))

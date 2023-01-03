@@ -31,6 +31,7 @@ pub async fn init() -> Result<MongoPool, MongoError> {
 #[derive(Serialize, Deserialize)]
 pub struct SnapshotModel {
   pub uid: String,
+  pub is_week_even: bool,
   pub date: DateTime,
   pub parsed_date: DateTime,
   pub groups: Vec<Group>,
@@ -38,13 +39,19 @@ pub struct SnapshotModel {
 
 impl Into<Snapshot> for SnapshotModel {
   fn into(self) -> Snapshot {
-    Snapshot { uid: self.uid, date: self.date.to_chrono(), parsed_date: self.parsed_date.to_chrono(), groups: self.groups }
+    Snapshot {
+      uid: self.uid,
+      is_week_even: self.is_week_even,
+      date: self.date.to_chrono(),
+      parsed_date: self.parsed_date.to_chrono(),
+      groups: self.groups,
+    }
   }
 }
 
 impl From<Snapshot> for SnapshotModel {
   fn from(s: Snapshot) -> Self {
-    Self { uid: s.uid, date: s.date.into(), parsed_date: s.parsed_date.into(), groups: s.groups }
+    Self { uid: s.uid, is_week_even: s.is_week_even, date: s.date.into(), parsed_date: s.parsed_date.into(), groups: s.groups }
   }
 }
 

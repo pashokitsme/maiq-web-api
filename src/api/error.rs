@@ -24,8 +24,8 @@ pub enum ApiError {
   #[error("Database error: {0}")]
   Database(mongodb::error::Error),
 
-  #[error("Requested timetable `{0}` not found")]
-  TimetableNotFound(String),
+  #[error("Requested snapshot `{0}` not found")]
+  SnapshotNotFound(String),
 
   #[error("{0}")]
   ParserError(ParserError),
@@ -57,7 +57,7 @@ impl ApiError {
     match self {
       ApiError::NotFound { .. } => Status::NotFound,
       ApiError::Database(..) => Status::InternalServerError,
-      ApiError::TimetableNotFound(..) => Status::NotFound,
+      ApiError::SnapshotNotFound(..) => Status::NotFound,
       ApiError::ParserError(..) => Status::InternalServerError,
       ApiError::Unknown => Status::InternalServerError,
     }
@@ -67,7 +67,7 @@ impl ApiError {
     match self {
       ApiError::NotFound { .. } => "route_not_matched",
       ApiError::Database(..) => "db_err",
-      ApiError::TimetableNotFound(..) => "timetable_not_found",
+      ApiError::SnapshotNotFound(..) => "snapshot_not_found",
       ApiError::ParserError(..) => "internal_parser_err",
       ApiError::Unknown => "unknown",
     }
