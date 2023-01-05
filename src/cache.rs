@@ -104,7 +104,7 @@ impl CachePool {
       Fetch::Tomorrow => self.poll.latest_next_uid = Some(snapshot.uid.clone()),
     }
 
-    debug!("Set cache: {:?}", &self.poll);
+    debug!("Set poll: {:?}", &self.poll);
 
     if latest.is_none() {
       debug!("Saving snapshot..");
