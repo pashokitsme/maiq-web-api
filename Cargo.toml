@@ -21,5 +21,3 @@ chrono = { version = "0.4.23", features = ["serde"] }
 lazy_static = "1.4.0"
 log = "0.4.17"
 pretty_env_logger = "0.4.0"
-rocket_codegen = "0.4.11"
-async-trait = "0.1.60"

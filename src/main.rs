@@ -18,11 +18,11 @@ use cache::CachePool;
 use rocket::{
   fairing::{Fairing, Info, Kind},
   http::Header,
-  Error, Request, Response,
+  Request, Response,
 };
 
 #[rocket::main]
-async fn main() -> Result<(), Error> {
+async fn main() {
   env::check_env_vars();
   pretty_env_logger::init();
 
@@ -51,8 +51,8 @@ async fn main() -> Result<(), Error> {
     .manage(mongo_ref)
     .manage(cache_ref)
     .launch()
-    .await?;
-  Ok(())
+    .await
+    .expect("Error while running Rocket");
 }
 
 struct Cors;
