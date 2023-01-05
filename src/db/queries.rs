@@ -1,16 +1,13 @@
-use maiq_parser::Snapshot;
+use super::{get_snapshots_as_model, MongoError, MongoPool};
+use maiq_parser::{utils, Snapshot};
 use mongodb::{
   bson::{doc, DateTime},
   options::FindOptions,
 };
 
-use crate::utils;
-
-use super::{get_snapshots_as_model, MongoError, MongoPool};
-
 pub async fn get_latest_today(mongo: &MongoPool) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = get_snapshots_as_model(&mongo);
-  let today = DateTime::from_chrono(utils::current_date(0));
+  let today = DateTime::from_chrono(utils::now_date(0));
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
     .limit(1)
@@ -26,7 +23,7 @@ pub async fn get_latest_today(mongo: &MongoPool) -> Result<Option<Snapshot>, Mon
 
 pub async fn get_latest_next(mongo: &MongoPool) -> Result<Option<Snapshot>, MongoError> {
   let snapshots = get_snapshots_as_model(&mongo);
-  let time = DateTime::from_chrono(utils::current_date(1));
+  let time = DateTime::from_chrono(utils::now_date(1));
   let opts = FindOptions::builder()
     .sort(doc! { "parsed_date": 1, "date": 1 })
     .limit(1)

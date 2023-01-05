@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 
 use crate::{
   api::{FetchParam, TinySnapshot},
-  cache::Cache,
+  cache::{CachePool, PollModel},
   db::{self, MongoPool},
 };
 
@@ -42,8 +42,8 @@ pub async fn latest_group<'g>(
 }
 
 #[get("/poll")]
-pub async fn poll(cache: &State<Arc<Mutex<Cache>>>) -> Result<Json<Cache>, ApiError> {
-  Ok(Json(cache.lock().await.clone()))
+pub async fn poll(cache: &State<Arc<Mutex<CachePool>>>) -> Result<Json<PollModel>, ApiError> {
+  Ok(Json(cache.lock().await.poll()))
 }
 
 #[get("/snapshot/<uid>")]

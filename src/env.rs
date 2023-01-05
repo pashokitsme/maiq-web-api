@@ -11,6 +11,7 @@ macro_rules! env_var {
 
 env_var!(DB_URL, "DATABASE_CONNECTION_URL");
 env_var!(DEFAULT_DB, "DEFAULT_DATABASE_NAME");
+env_var!(UPDATE_INTERVAL, "UPDATE_CACHE_INTERVAL_SECS");
 
 pub fn parse_var<T: FromStr>(var: &'static str) -> Option<T> {
   self::var(var).and_then(|x| x.parse().ok())
@@ -36,6 +37,7 @@ pub fn check_env_vars() {
 
   failed |= !check::<String>(DB_URL);
   failed |= !check::<String>(DEFAULT_DB);
+  failed |= !check::<u64>(UPDATE_INTERVAL);
 
   failed.then(|| panic!("Not all environment args are set"));
 }

@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 // todo: validate collections on init
 pub async fn init() -> Result<MongoPool, MongoError> {
   let url = dotenvy::var(env::DB_URL).unwrap();
-  info!("Connecting to {}", url);
+  info!("Connecting to database..");
 
   let mut opts = ClientOptions::parse(url).await?;
   opts.app_name = Some("maiq-web".into());
