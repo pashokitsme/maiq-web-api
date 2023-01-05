@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use chrono::{DateTime, Duration, Utc};
 use maiq_parser::{fetch_n_parse, utils, Fetch, Snapshot};
@@ -36,6 +36,9 @@ pub struct CachePool {
   poll: InnerPoll,
 
   pub interval: Interval,
+  cache_size: usize,
+  cache_age_limit: Duration,
+
   mongo: MongoPool,
 }
 
@@ -47,6 +50,8 @@ impl CachePool {
       next_update: utils::now(0) + Duration::seconds(interval.period().as_secs() as i64),
       interval,
       cached: vec![],
+      cache_size: env::parse_var(env::CACHE_SIZE).unwrap(),
+      cache_age_limit: Duration::seconds(env::parse_var(env::CACHE_AGE_LIMIT).unwrap()),
       poll: InnerPoll::default(),
       mongo,
     };
@@ -91,7 +96,7 @@ impl CachePool {
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
     let snapshot = fetch_n_parse(&Fetch::Today).await?.snapshot;
-    self.update_cached_snapshots(&snapshot).await;
+    self.try_cache_snapshot(&snapshot).await;
     let latest = db::get_by_uid(&self.mongo, snapshot.uid.as_str()).await?;
 
     match fetch {
@@ -114,20 +119,24 @@ impl CachePool {
     Ok(())
   }
 
-  async fn update_cached_snapshots(&mut self, snapshot: &Snapshot) {
-    if !self.is_need_to_update(snapshot).await {
-      return;
+  pub async fn try_cache_snapshot(&mut self, snapshot: &Snapshot) -> bool {
+    if !self.is_need_to_push(snapshot).await {
+      return false;
     }
+
+    info!("Caching snapshot {}", snapshot.uid);
     self.cached.push(snapshot.clone());
     let len = self.cached.len();
-    if len > 4 {
-      self.cached.drain(0..(len - 4));
+    if len > self.cache_size {
+      self.cached.retain(|s| s.age() < self.cache_age_limit);
+      info!("Removed {} snapshots from cache", len - self.cached.len())
     }
+    return true;
   }
 
-  async fn is_need_to_update(&self, snapshot: &Snapshot) -> bool {
+  async fn is_need_to_push(&self, snapshot: &Snapshot) -> bool {
     let cached = self.cached_by_uid(&snapshot.uid).await;
-    cached.is_some() || cached.unwrap().age() > Duration::minutes(4)
+    cached.is_none() || cached.unwrap().age() > self.cache_age_limit
   }
 }
 
@@ -138,10 +147,10 @@ pub fn get_interval_from_env() -> Interval {
 
 fn possible_error_handler(today: Result<(), ApiError>, next: Result<(), ApiError>) {
   if let Err(err) = today {
-    warn!("Error while updating cache for today: {}", err);
+    debug!("Error while updating cache for today: {}", err);
   }
 
   if let Err(err) = next {
-    warn!("Error while updating cache for next day: {}", err);
+    debug!("Error while updating cache for next day: {}", err);
   }
 }
