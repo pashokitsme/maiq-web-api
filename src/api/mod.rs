@@ -8,6 +8,7 @@ use self::error::ApiError;
 pub mod error;
 pub mod routes;
 
+#[derive(Debug, Clone)]
 pub enum FetchParam {
   Today,
   Tomorrow,

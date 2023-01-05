@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[derive(Serialize, Clone, Debug)]
-pub struct PollModel {
+pub struct Poll {
   pub latest_today_uid: Option<String>,
   pub latest_next_uid: Option<String>,
   pub last_update: DateTime<Utc>,
@@ -23,7 +23,7 @@ pub struct PollModel {
 }
 
 #[derive(Debug, Default)]
-struct Poll {
+struct InnerPoll {
   pub latest_today_uid: Option<String>,
   pub latest_next_uid: Option<String>,
 }
@@ -33,7 +33,7 @@ pub struct CachePool {
   next_update: DateTime<Utc>,
 
   cached: Vec<Snapshot>,
-  poll: Poll,
+  poll: InnerPoll,
 
   pub interval: Interval,
   mongo: MongoPool,
@@ -47,7 +47,7 @@ impl CachePool {
       next_update: utils::now(0) + Duration::seconds(interval.period().as_secs() as i64),
       interval,
       cached: vec![],
-      poll: Poll::default(),
+      poll: InnerPoll::default(),
       mongo,
     };
 
@@ -69,8 +69,8 @@ impl CachePool {
     self.cached.iter().find(|s| s.uid.as_str() == uid).cloned()
   }
 
-  pub fn poll(&self) -> PollModel {
-    PollModel {
+  pub fn poll(&self) -> Poll {
+    Poll {
       latest_today_uid: self.poll.latest_today_uid.clone(),
       latest_next_uid: self.poll.latest_next_uid.clone(),
       last_update: self.last_update,
