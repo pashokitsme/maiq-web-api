@@ -33,6 +33,7 @@ async fn main() -> Result<(), Error> {
   let mut cache_interval = cache::get_interval_from_env();
 
   tokio::spawn(async move {
+    cache_interval.tick().await;
     loop {
       cache_interval.tick().await;
       cache_ref.lock().await.update_tick().await;
