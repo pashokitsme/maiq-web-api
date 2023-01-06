@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 use chrono::{DateTime, Duration, Utc};
 use maiq_parser::{fetch_n_parse, utils, Fetch, Snapshot};
@@ -8,11 +8,7 @@ use tokio::{
   time::{self, Interval},
 };
 
-use crate::{
-  api::error::ApiError,
-  db::{self, MongoPool},
-  env,
-};
+use crate::{api::error::ApiError, db::MongoPool, env};
 
 #[derive(Serialize, Clone, Debug)]
 pub struct Poll {
@@ -39,7 +35,7 @@ pub struct CachePool {
   cache_size: usize,
   cache_age_limit: Duration,
 
-  mongo: MongoPool,
+  db: MongoPool,
 }
 
 impl CachePool {
@@ -53,7 +49,7 @@ impl CachePool {
       cache_size: env::parse_var(env::CACHE_SIZE).unwrap(),
       cache_age_limit: Duration::seconds(env::parse_var(env::CACHE_AGE_LIMIT).unwrap()),
       poll: InnerPoll::default(),
-      mongo,
+      db: mongo,
     };
 
     pool.update_tick().await;
@@ -61,7 +57,7 @@ impl CachePool {
     Arc::new(Mutex::new(pool))
   }
 
-  pub async fn cached<'a>(&self, mode: Fetch) -> Option<Snapshot> {
+  pub fn cached<'a>(&self, mode: Fetch) -> Option<Snapshot> {
     let today = utils::now_date(0);
     let mut iter = self.cached.iter().rev();
     match mode {
@@ -70,7 +66,7 @@ impl CachePool {
     }
   }
 
-  pub async fn cached_by_uid<'a, 'b>(&self, uid: &'a str) -> Option<Snapshot> {
+  pub fn cached_by_uid<'a, 'b>(&self, uid: &'a str) -> Option<Snapshot> {
     self.cached.iter().find(|s| s.uid.as_str() == uid).cloned()
   }
 
@@ -81,6 +77,10 @@ impl CachePool {
       last_update: self.last_update,
       next_update: self.next_update,
     }
+  }
+
+  pub fn all<'a>(&'a self) -> &'a Vec<Snapshot> {
+    &self.cached
   }
 
   pub async fn update_tick(&mut self) {
@@ -96,8 +96,8 @@ impl CachePool {
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
     let snapshot = fetch_n_parse(&Fetch::Today).await?.snapshot;
-    self.try_cache_snapshot(&snapshot).await;
-    let latest = db::get_by_uid(&self.mongo, snapshot.uid.as_str()).await?;
+    self.try_cache_snapshot(&snapshot);
+    let latest = self.db.get_by_uid(snapshot.uid.as_str()).await?;
 
     match fetch {
       Fetch::Today => {
@@ -113,14 +113,14 @@ impl CachePool {
 
     if latest.is_none() {
       debug!("Saving snapshot..");
-      db::save(&self.mongo, snapshot).await?;
+      self.db.save(snapshot).await?;
     }
 
     Ok(())
   }
 
-  pub async fn try_cache_snapshot(&mut self, snapshot: &Snapshot) -> bool {
-    if !self.is_need_to_push(snapshot).await {
+  pub fn try_cache_snapshot(&mut self, snapshot: &Snapshot) -> bool {
+    if !self.is_need_to_push(snapshot) {
       return false;
     }
 
@@ -134,8 +134,8 @@ impl CachePool {
     return true;
   }
 
-  async fn is_need_to_push(&self, snapshot: &Snapshot) -> bool {
-    let cached = self.cached_by_uid(&snapshot.uid).await;
+  fn is_need_to_push(&self, snapshot: &Snapshot) -> bool {
+    let cached = self.cached_by_uid(&snapshot.uid);
     cached.is_none() || cached.unwrap().age() > self.cache_age_limit
   }
 }

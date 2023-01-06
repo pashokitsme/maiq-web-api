@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 use crate::{
   api::{FetchParam, TinySnapshot},
   cache::{CachePool, Poll},
-  db::{self, MongoPool},
+  db::MongoPool,
 };
 
 use super::error::{ApiError, CustomApiError};
@@ -20,20 +20,24 @@ pub async fn index() -> Result<CustomApiError, ApiError> {
 #[get("/latest/<fetch>")]
 pub async fn latest(
   fetch: FetchParam,
-  mongo: &State<MongoPool>,
+  db: &State<MongoPool>,
   cache: &State<Arc<Mutex<CachePool>>>,
 ) -> Result<Json<Snapshot>, ApiError> {
-  if let Some(s) = cache.lock().await.cached(fetch.clone().into()).await {
+  let mut cache = cache.lock().await;
+  if let Some(s) = cache.cached(fetch.clone().into()) {
     info!("Found cached {}!", s.uid);
     return Ok(Json(s));
   }
 
   info!("Trying to fetch {:?} snapshot from db", fetch);
   match fetch {
-    FetchParam::Today => db::get_latest_today(&mongo).await?,
-    FetchParam::Tomorrow => db::get_latest_next(&mongo).await?,
+    FetchParam::Today => db.get_latest_today().await?,
+    FetchParam::Tomorrow => db.get_latest_next().await?,
   }
-  .map(|s| Json(s))
+  .map(|s| {
+    cache.try_cache_snapshot(&s);
+    Json(s)
+  })
   .ok_or(ApiError::SnapshotNotFound(fetch.to_string()))
 }
 
@@ -41,20 +45,24 @@ pub async fn latest(
 pub async fn latest_group<'g>(
   fetch: FetchParam,
   group: &'g str,
-  mongo: &State<MongoPool>,
+  db: &State<MongoPool>,
   cache: &State<Arc<Mutex<CachePool>>>,
 ) -> Result<Json<TinySnapshot>, ApiError> {
-  if let Some(s) = cache.lock().await.cached(fetch.clone().into()).await {
+  let mut cache = cache.lock().await;
+  if let Some(s) = cache.cached(fetch.clone().into()) {
     info!("Found cached {}!", s.uid);
     return Ok(Json(TinySnapshot::new_from_snapshot(group, &s)));
   }
 
   info!("Trying to fetch {:?} snapshot from db", fetch);
   match fetch {
-    FetchParam::Today => db::get_latest_today(&mongo).await?,
-    FetchParam::Tomorrow => db::get_latest_next(&mongo).await?,
+    FetchParam::Today => db.get_latest_today().await?,
+    FetchParam::Tomorrow => db.get_latest_next().await?,
   }
-  .map(|s| Json(TinySnapshot::new_from_snapshot(group, &s)))
+  .map(|s| {
+    cache.try_cache_snapshot(&s);
+    Json(TinySnapshot::new_from_snapshot(group, &s))
+  })
   .ok_or(ApiError::SnapshotNotFound(fetch.to_string()))
 }
 
@@ -66,16 +74,26 @@ pub async fn poll(cache: &State<Arc<Mutex<CachePool>>>) -> Result<Json<Poll>, Ap
 #[get("/snapshot/<uid>")]
 pub async fn snapshot_by_id<'a>(
   uid: &'a str,
-  mongo: &State<MongoPool>,
+  db: &State<MongoPool>,
   cache: &State<Arc<Mutex<CachePool>>>,
 ) -> Result<Json<Snapshot>, ApiError> {
-  if let Some(s) = cache.lock().await.cached_by_uid(uid).await {
+  let mut cache = cache.lock().await;
+  if let Some(s) = cache.cached_by_uid(uid) {
     info!("Found cached {}!", s.uid);
     return Ok(Json(s));
   }
   info!("Trying to fetch snapshot {} from db", uid);
-  db::get_by_uid(&mongo, uid)
+  db.get_by_uid(uid)
     .await?
-    .map(|s| Json(s))
+    .map(|s| {
+      cache.try_cache_snapshot(&s);
+      Json(s)
+    })
     .ok_or(ApiError::SnapshotNotFound(uid.into()))
+}
+
+#[get("/cached")]
+pub async fn cached(cache: &State<Arc<Mutex<CachePool>>>) -> Result<Json<Vec<Snapshot>>, ApiError> {
+  let cache = cache.lock().await;
+  Ok(Json(cache.all().clone()))
 }

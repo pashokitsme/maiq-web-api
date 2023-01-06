@@ -47,6 +47,7 @@ async fn main() {
     .register("/", catchers![not_found, internal_server_error])
     .mount("/", routes![index])
     .mount("/api", routes![index, latest, latest_group, poll, snapshot_by_id])
+    .mount("/api/dev", routes![cached])
     .attach(Cors)
     .manage(mongo_ref)
     .manage(cache_ref)

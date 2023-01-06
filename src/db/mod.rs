@@ -1,18 +1,33 @@
 pub mod commands;
 pub mod queries;
 
+use std::ops::Deref;
+
 use mongodb::{options::ClientOptions, Client, Collection};
 
 use crate::env;
 
 pub use commands::*;
 pub use queries::*;
-pub type MongoPool = Client;
+pub type MongoClient = Client;
 pub type MongoError = mongodb::error::Error;
 
 use maiq_parser::{Group, Snapshot};
 use mongodb::bson::{doc, DateTime};
 use serde::{Deserialize, Serialize};
+
+#[derive(Clone)]
+pub struct MongoPool {
+  client: MongoClient,
+}
+
+impl Deref for MongoPool {
+  type Target = MongoClient;
+
+  fn deref(&self) -> &Self::Target {
+    &self.client
+  }
+}
 
 // todo: validate collections on init
 pub async fn init() -> Result<MongoPool, MongoError> {
@@ -23,9 +38,9 @@ pub async fn init() -> Result<MongoPool, MongoError> {
   opts.app_name = Some("maiq-web".into());
   opts.default_database = Some(env::var(env::DEFAULT_DB).unwrap());
 
-  let client = MongoPool::with_options(opts)?;
+  let client = MongoClient::with_options(opts)?;
 
-  Ok(client)
+  Ok(MongoPool { client })
 }
 
 #[derive(Serialize, Deserialize)]
@@ -55,6 +70,8 @@ impl From<Snapshot> for SnapshotModel {
   }
 }
 
-fn get_snapshots_as_model(mongo: &MongoPool) -> Collection<SnapshotModel> {
-  mongo.default_database().unwrap().collection("snapshots")
+impl MongoPool {
+  fn get_snapshot_models(&self) -> Collection<SnapshotModel> {
+    self.default_database().unwrap().collection("snapshots")
+  }
 }
