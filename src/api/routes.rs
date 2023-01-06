@@ -95,5 +95,5 @@ pub async fn snapshot_by_id<'a>(
 #[get("/cached")]
 pub async fn cached(cache: &State<Arc<Mutex<CachePool>>>) -> Result<Json<Vec<Snapshot>>, ApiError> {
   let cache = cache.lock().await;
-  Ok(Json(cache.all().clone()))
+  Ok(Json(cache.collect_all().clone()))
 }

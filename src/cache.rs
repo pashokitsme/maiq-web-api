@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::sync::Arc;
 
 use chrono::{DateTime, Duration, Utc};
@@ -24,11 +25,36 @@ struct InnerPoll {
   pub latest_next_uid: Option<String>,
 }
 
+struct CachedSnapshot {
+  added: DateTime<Utc>,
+  snapshot: Snapshot,
+}
+
+impl Deref for CachedSnapshot {
+  type Target = Snapshot;
+
+  fn deref(&self) -> &Self::Target {
+    &self.snapshot
+  }
+}
+
+impl CachedSnapshot {
+  pub fn since_added(&self) -> Duration {
+    utils::now(0) - self.added
+  }
+}
+
+impl From<Snapshot> for CachedSnapshot {
+  fn from(s: Snapshot) -> Self {
+    Self { added: utils::now(0), snapshot: s }
+  }
+}
+
 pub struct CachePool {
   last_update: DateTime<Utc>,
   next_update: DateTime<Utc>,
 
-  cached: Vec<Snapshot>,
+  cached: Vec<CachedSnapshot>,
   poll: InnerPoll,
 
   pub interval: Interval,
@@ -61,13 +87,17 @@ impl CachePool {
     let today = utils::now_date(0);
     let mut iter = self.cached.iter().rev();
     match mode {
-      Fetch::Today => iter.find(|s| s.date == today).cloned(),
-      Fetch::Tomorrow => iter.find(|s| s.date > today).cloned(),
+      Fetch::Today => iter.find(|s| s.date == today).map(|s| s.snapshot.clone()),
+      Fetch::Tomorrow => iter.find(|s| s.date > today).map(|s| s.snapshot.clone()),
     }
   }
 
   pub fn cached_by_uid<'a, 'b>(&self, uid: &'a str) -> Option<Snapshot> {
-    self.cached.iter().find(|s| s.uid.as_str() == uid).cloned()
+    self
+      .cached
+      .iter()
+      .find(|s| s.uid.as_str() == uid)
+      .map(|s| s.snapshot.clone())
   }
 
   pub fn poll(&self) -> Poll {
@@ -79,12 +109,13 @@ impl CachePool {
     }
   }
 
-  pub fn all<'a>(&'a self) -> &'a Vec<Snapshot> {
-    &self.cached
+  pub fn collect_all(&self) -> Vec<Snapshot> {
+    self.cached.iter().map(|s| s.snapshot.clone()).collect()
   }
 
   pub async fn update_tick(&mut self) {
     info!("Updating cache..");
+    self.purge();
 
     self.last_update = utils::now(0);
     self.next_update = self.last_update + chrono::Duration::from_std(self.interval.period()).unwrap();
@@ -96,7 +127,6 @@ impl CachePool {
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
     let snapshot = fetch_n_parse(&Fetch::Today).await?.snapshot;
-    self.try_cache_snapshot(&snapshot);
     let latest = self.db.get_by_uid(snapshot.uid.as_str()).await?;
 
     match fetch {
@@ -120,23 +150,21 @@ impl CachePool {
   }
 
   pub fn try_cache_snapshot(&mut self, snapshot: &Snapshot) -> bool {
-    if !self.is_need_to_push(snapshot) {
+    if let Some(_) = self.cached.iter_mut().find(|s| s.uid.as_str() == snapshot.uid) {
       return false;
     }
 
     info!("Caching snapshot {}", snapshot.uid);
-    self.cached.push(snapshot.clone());
-    let len = self.cached.len();
-    if len > self.cache_size {
-      self.cached.retain(|s| s.age() < self.cache_age_limit);
-      info!("Removed {} snapshots from cache", len - self.cached.len())
-    }
+    self.cached.push(snapshot.clone().into());
     return true;
   }
 
-  fn is_need_to_push(&self, snapshot: &Snapshot) -> bool {
-    let cached = self.cached_by_uid(&snapshot.uid);
-    cached.is_none() || cached.unwrap().age() > self.cache_age_limit
+  fn purge(&mut self) {
+    let len = self.cached.len();
+    if len > self.cache_size {
+      self.cached.retain(|s| s.since_added() < self.cache_age_limit);
+      info!("Removed {} snapshots from cache", len - self.cached.len())
+    }
   }
 }
 
