@@ -83,21 +83,21 @@ impl CachePool {
     Arc::new(Mutex::new(pool))
   }
 
-  pub fn cached<'a>(&self, mode: Fetch) -> Option<Snapshot> {
+  pub fn cached<'a>(&mut self, mode: Fetch) -> Option<Snapshot> {
     let today = utils::now_date(0);
-    let mut iter = self.cached.iter().rev();
+    let mut iter = self.cached.iter_mut().rev();
     match mode {
-      Fetch::Today => iter.find(|s| s.date == today).map(|s| s.snapshot.clone()),
-      Fetch::Tomorrow => iter.find(|s| s.date > today).map(|s| s.snapshot.clone()),
+      Fetch::Today => iter.find(|s| s.date == today).map(cached_to_snapshot),
+      Fetch::Tomorrow => iter.find(|s| s.date > today).map(cached_to_snapshot),
     }
   }
 
-  pub fn cached_by_uid<'a, 'b>(&self, uid: &'a str) -> Option<Snapshot> {
+  pub fn cached_by_uid<'a, 'b>(&mut self, uid: &'a str) -> Option<Snapshot> {
     self
       .cached
-      .iter()
+      .iter_mut()
       .find(|s| s.uid.as_str() == uid)
-      .map(|s| s.snapshot.clone())
+      .map(cached_to_snapshot)
   }
 
   pub fn poll(&self) -> Poll {
@@ -181,4 +181,9 @@ fn possible_error_handler(today: Result<(), ApiError>, next: Result<(), ApiError
   if let Err(err) = next {
     debug!("Error while updating cache for next day: {}", err);
   }
+}
+
+fn cached_to_snapshot(cached: &mut CachedSnapshot) -> Snapshot {
+  cached.added = utils::now(0);
+  cached.snapshot.clone()
 }
