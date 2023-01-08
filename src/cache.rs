@@ -118,11 +118,11 @@ impl CachePool {
     self.purge();
 
     self.last_update = utils::now(0);
-    self.next_update = self.last_update + chrono::Duration::from_std(self.interval.period()).unwrap();
 
     let today = self.update(Fetch::Today).await;
     let next = self.update(Fetch::Tomorrow).await;
     possible_error_handler(today, next);
+    self.next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap();
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {

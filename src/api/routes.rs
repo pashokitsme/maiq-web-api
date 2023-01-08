@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use maiq_parser::timetable::Snapshot;
+use maiq_parser::Snapshot;
 use rocket::{http::Status, serde::json::Json, State};
 use tokio::sync::Mutex;
 
