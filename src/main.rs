@@ -25,6 +25,7 @@ use rocket::{
 async fn main() {
   env::check_env_vars();
   pretty_env_logger::init();
+  maiq_parser::warmup_defaults();
 
   let mongo = db::init().await.expect("Error while connecting to database");
   let cache = CachePool::new(mongo.clone()).await;
