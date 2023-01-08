@@ -10,7 +10,7 @@ mod db;
 mod env;
 
 use api::{
-  error::{internal_server_error, not_found},
+  error::{internal_server_error, not_found, unauthorized},
   routes::*,
 };
 
@@ -23,8 +23,9 @@ use rocket::{
 
 #[rocket::main]
 async fn main() {
-  env::check_env_vars();
+  dotenvy::dotenv().expect("Unable to init .env");
   pretty_env_logger::init();
+  env::check_env_vars();
   maiq_parser::warmup_defaults();
 
   let mongo = db::init().await.expect("Error while connecting to database");
@@ -45,7 +46,7 @@ async fn main() {
   let cache_ref = cache.clone();
 
   _ = rocket::build()
-    .register("/", catchers![not_found, internal_server_error])
+    .register("/", catchers![not_found, internal_server_error, unauthorized])
     .mount("/", routes![index])
     .mount("/api", routes![index, latest, latest_group, poll, snapshot_by_id])
     .mount("/api/dev", routes![cached])

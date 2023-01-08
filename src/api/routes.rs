@@ -10,7 +10,10 @@ use crate::{
   db::MongoPool,
 };
 
-use super::error::{ApiError, CustomApiError};
+use super::{
+  error::{ApiError, CustomApiError},
+  ApiKey,
+};
 
 #[get("/")]
 pub async fn index() -> Result<CustomApiError, ApiError> {
@@ -93,7 +96,7 @@ pub async fn snapshot_by_id<'a>(
 }
 
 #[get("/cached")]
-pub async fn cached(cache: &State<Arc<Mutex<CachePool>>>) -> Result<Json<Vec<Snapshot>>, ApiError> {
+pub async fn cached(_secret: ApiKey, cache: &State<Arc<Mutex<CachePool>>>) -> Result<Json<Vec<Snapshot>>, ApiError> {
   let cache = cache.lock().await;
   Ok(Json(cache.collect_all().clone()))
 }

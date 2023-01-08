@@ -30,6 +30,9 @@ pub enum ApiError {
   #[error("{0}")]
   ParserError(ParserError),
 
+  #[error("Invalid API Key")]
+  InvalidApiKey,
+
   #[error("Internal server error")]
   Unknown,
 }
@@ -59,6 +62,7 @@ impl ApiError {
       ApiError::Database(..) => Status::InternalServerError,
       ApiError::SnapshotNotFound(..) => Status::NotFound,
       ApiError::ParserError(..) => Status::InternalServerError,
+      ApiError::InvalidApiKey => Status::Unauthorized,
       ApiError::Unknown => Status::InternalServerError,
     }
   }
@@ -69,6 +73,7 @@ impl ApiError {
       ApiError::Database(..) => "db_err",
       ApiError::SnapshotNotFound(..) => "snapshot_not_found",
       ApiError::ParserError(..) => "internal_parser_err",
+      ApiError::InvalidApiKey => "invalid_api_key",
       ApiError::Unknown => "unknown",
     }
   }
@@ -91,6 +96,11 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for CustomApiError {
         .finalize(),
     )
   }
+}
+
+#[catch(401)]
+pub fn unauthorized(_: &Request) -> ApiError {
+  ApiError::InvalidApiKey
 }
 
 #[catch(404)]
