@@ -1,43 +1,43 @@
 # Получить снапшот по uid
 `GET` `/api/snapshot/<uid>`
 
-Параметры:
+> Параметры:
 * `uid`: строка, обязательный
 
-Ответы:
+> Ответы:
 * 200 OK: [`Snapshot`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonsnapshot)
 * Остальное: [`ApiError`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonapierror)
   
 # Получить последний снапшот
 `GET` `/api/latest/<day>`
 
-Параметры:
+> Параметры:
 * `day:` 
-* * `today` - сегодня
-* * `next` - следующий день (завтра/понедельник)
-* * `tomorrow` - то же самое, что и next
+  * `today` - сегодня
+  * `next` - следующий день (завтра/понедельник)
+  * `tomorrow` - то же самое, что и next
 
-Ответы:
+> Ответы:
 * 200 OK: [`Snapshot`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonsnapshot)
 * Остальное: [`ApiError`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonapierror)
 
 # Получить последнее расписание группы
 `GET` `/api/latest/<day>/<group>`
 
-Параметры:
+> Параметры:
 * `day:` 
-* * `today` - сегодня
-* * `next` - следующий день (завтра/понедельник)
-* * `tomorrow` - то же самое, что и next
+  * `today` - сегодня
+  * `next` - следующий день (завтра/понедельник)
+  * `tomorrow` - то же самое, что и next
 * `group` - название группы
 
-Ответы:
+> Ответы:
 * 200 OK: [`TinySnapshot`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsontinysnapshot)
 * Остальное: [`ApiError`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonapierror)
 
 # Получить uid последних снапшотов на сегодня и на следующий день
 `GET` `/api/poll`
 
-Ответы:
+> Ответы:
 * 200 OK: [`JSON/Poll`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonpoll)
 * Остальное: [`ApiError`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonapierror)

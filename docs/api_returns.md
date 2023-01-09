@@ -1,4 +1,4 @@
-**Все значения даты/время возвращаются в формате `UTC` без указания часового пояса, но, тем не менее, они все `UTC+3`**
+> **Все значения даты/время возвращаются в формате `UTC` без указания часового пояса, но, тем не менее, они все `UTC+3`**
 
 ## JSON/Snapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L28-L35))
 
@@ -60,7 +60,7 @@
   "desc": "Failed to match (GET) /api/not_existing_path. Try something else?" // описание ошибки
 ```
 
-Возможные варианты ошибок:
+> Возможные варианты ошибок:
 * `401` `unauthorized`: тебе сюда нельзя
 * `404` `route_not_matched`: путь не найден или неправильный параметр
 * `404` `snapshot_not_found`: снапшот не найден
