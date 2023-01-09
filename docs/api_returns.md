@@ -1,6 +1,7 @@
 **Все значения даты/время возвращаются в формате `UTC` без указания часового пояса, но, тем не менее, они все `UTC+3`**
 
-## JSON/Snapshot
+## JSON/Snapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L28-L35))
+
 ```json5
 "uid": "Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B", // уникальный ID, результат натравливания sha256 на все пары всех групп
 "date": "2022-12-28T00:00:00Z", // дата, для которой предназначается снапшот
@@ -23,14 +24,14 @@
 ] 
 ```
 
-## JSON/TinySnapshot
+## JSON/TinySnapshot ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/api/mod.rs#L75-L81))
 Почти то же самое, что и JSON/Snapshot, но хранит в себе только одну группу
 ```json5
 "uid": "Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B", // уникальный ID, результат натравливания sha256 на все пары всех групп
 "date": "2022-12-28T00:00:00Z", // дата, для которой предназначается снапшот
 "parsed_date": "2022-12-28T03:11:52.535Z", // дата, когда снапшот был спарсен
 "is_week_even": true, // чётная или нечётная неделя (числитель или знаменатель)
-"group": 
+"group":
 {
   "name": "Ир1-19",
   "lessons": [
@@ -45,7 +46,7 @@
 }
 ```
 
-## JSON/Poll
+## JSON/Poll ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/cache.rs#L14-L20))
 ```json5
 "latest_today_uid": "Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B", // может быть null
 "latest_next_uid": null, // может быть null
@@ -53,7 +54,7 @@
 "next_update": "2023-01-09T18:28:22.841154Z" // время, в которое будет следующее обновление
 ```
 
-## JSON/ApiError
+## JSON/ApiError ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/api/error.rs#L11-L38))
 ```json5
   "cause": "route_not_matched", // ошибка
   "desc": "Failed to match (GET) /api/not_existing_path. Try something else?" // описание ошибки
