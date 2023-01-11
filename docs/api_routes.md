@@ -2,7 +2,7 @@
 `GET` `/api/snapshot/<uid>`
 
 > Параметры:
-* `uid`: строка, обязательный
+* `uid`: uid, ничего больше сказать
 
 > Ответы:
 * 200 OK: [`Snapshot`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonsnapshot)
@@ -12,10 +12,10 @@
 `GET` `/api/latest/<day>`
 
 > Параметры:
-* `day:` 
-  * `today` - сегодня
-  * `next` - следующий день (завтра/понедельник)
-  * `tomorrow` - то же самое, что и next
+* `day`: 
+  * `today`: сегодня
+  * `next`: следующий день (завтра/понедельник)
+  * `tomorrow`: то же самое, что и next
 
 > Ответы:
 * 200 OK: [`Snapshot`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonsnapshot)
@@ -25,11 +25,11 @@
 `GET` `/api/latest/<day>/<group>`
 
 > Параметры:
-* `day:` 
-  * `today` - сегодня
-  * `next` - следующий день (завтра/понедельник)
-  * `tomorrow` - то же самое, что и next
-* `group` - название группы
+* `day`: 
+  * `today`: сегодня
+  * `next`: следующий день (завтра/понедельник)
+  * `tomorrow`: то же самое, что и next
+* `group`: название группы
 
 > Ответы:
 * 200 OK: [`TinySnapshot`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsontinysnapshot)
@@ -41,3 +41,20 @@
 > Ответы:
 * 200 OK: [`JSON/Poll`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonpoll)
 * Остальное: [`ApiError`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonapierror)
+
+# Получить стандартное расписание
+`GET` `/api/default/<weekday>/<group>`
+
+> Параметры:
+* `weekday`, соответственно:
+  * mon
+  * tue
+  * wed
+  * thu
+  * fri
+  * sat
+* `group`: название группы
+
+> Ответы:
+  * 200 OK: [`JSON/DefaultDay`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsondefaultday)
+  * Остальное: [`ApiError`](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_returns.md#jsonapierror)
