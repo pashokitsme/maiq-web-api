@@ -148,7 +148,7 @@ impl CachePool {
     self.try_cache_snapshot(&snapshot);
     debug!("Set poll: {:?}", &self.poll);
 
-    if parsed.is_err() {
+    if parsed.is_ok() {
       debug!("Saving snapshot..");
       self.db.save(snapshot).await?;
     }
