@@ -19,7 +19,7 @@
         },
         {
           "num": 2,
-          "is_even": true,
+          "is_even": false,
           "name": "Информационные технологии",
           "teacher": "Юшина И. В",
           "classroom": "208М"
