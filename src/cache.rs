@@ -126,31 +126,34 @@ impl CachePool {
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
-    let parsed = fetch_n_parse(&fetch).await;
-
-    let snapshot = match parsed {
-      Ok(ref p) => p.snapshot.clone(),
-      Err(_) => self.db.get_latest(fetch.clone()).await?.ok_or(ApiError::Unknown)?, // don't care about error type cuz anyway it doesn't used
+    info!("Updating: {:?}", fetch);
+    let snapshot = match fetch_n_parse(&fetch).await {
+      Ok(p) => Some(p.snapshot),
+      Err(_) => None,
     };
 
-    info!("Updating: {} for {:?}; from db: {}", snapshot.uid, fetch, parsed.is_err());
+    let uid = snapshot.as_ref().map(|s| s.uid.clone());
 
     match fetch {
-      Fetch::Today => {
-        self.poll.latest_today_uid = match snapshot.date {
-          x if x == utils::now(0) => Some(snapshot.uid.clone()),
-          _ => None,
-        }
-      }
-      Fetch::Tomorrow => self.poll.latest_next_uid = Some(snapshot.uid.clone()),
+      Fetch::Today => self.poll.latest_today_uid = uid,
+      Fetch::Tomorrow => self.poll.latest_next_uid = uid,
     }
 
-    self.try_cache_snapshot(&snapshot);
-    debug!("Set poll: {:?}", &self.poll);
+    info!("Set poll: {:?}", &self.poll);
 
-    if parsed.is_ok() {
-      debug!("Saving snapshot..");
-      self.db.save(snapshot).await?;
+    if let Some(s) = snapshot.as_ref() {
+      self.try_cache_snapshot(&s);
+
+      if self.db.get_by_uid(&s.uid).await?.is_none() {
+        debug!("Saving snapshot..");
+        self.db.save(s.clone()).await?;
+      }
+
+      return Ok(());
+    }
+
+    if let Some(s) = &self.db.get_latest(fetch).await? {
+      self.try_cache_snapshot(s);
     }
 
     Ok(())
