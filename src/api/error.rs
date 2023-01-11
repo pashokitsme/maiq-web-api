@@ -27,6 +27,9 @@ pub enum ApiError {
   #[error("Requested snapshot `{0}` not found")]
   SnapshotNotFound(String),
 
+  #[error("Requested default for `{1}` for `{0}` not found")]
+  DefaultNotFound(String, String),
+
   #[error("{0}")]
   ParserError(ParserError),
 
@@ -61,6 +64,7 @@ impl ApiError {
       ApiError::NotFound { .. } => Status::NotFound,
       ApiError::Database(..) => Status::InternalServerError,
       ApiError::SnapshotNotFound(..) => Status::NotFound,
+      ApiError::DefaultNotFound(..) => Status::NotFound,
       ApiError::ParserError(..) => Status::InternalServerError,
       ApiError::InvalidApiKey => Status::Unauthorized,
       ApiError::Unknown => Status::InternalServerError,
@@ -72,6 +76,7 @@ impl ApiError {
       ApiError::NotFound { .. } => "route_not_matched",
       ApiError::Database(..) => "db_err",
       ApiError::SnapshotNotFound(..) => "snapshot_not_found",
+      ApiError::DefaultNotFound(..) => "default_not_found",
       ApiError::ParserError(..) => "internal_parser_err",
       ApiError::InvalidApiKey => "invalid_api_key",
       ApiError::Unknown => "unknown",

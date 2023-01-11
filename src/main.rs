@@ -48,7 +48,7 @@ async fn main() {
   _ = rocket::build()
     .register("/", catchers![not_found, internal_server_error, unauthorized])
     .mount("/", routes![index])
-    .mount("/api", routes![index, latest, latest_group, poll, snapshot_by_id])
+    .mount("/api", routes![index, latest, latest_group, poll, snapshot_by_id, default])
     .mount("/api/dev", routes![cached])
     .attach(Cors)
     .manage(mongo_ref)

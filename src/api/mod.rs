@@ -1,11 +1,9 @@
-use chrono::{DateTime, Utc};
-use maiq_parser::{Fetch, Group, Snapshot};
+use maiq_parser::Fetch;
 use rocket::{
   http::Status,
   request::{FromParam, FromRequest, Outcome},
   Request,
 };
-use serde::Serialize;
 
 use crate::env;
 
@@ -13,6 +11,7 @@ use self::error::ApiError;
 
 pub mod error;
 pub mod routes;
+mod utils;
 
 #[derive(Debug, Clone)]
 pub enum FetchParam {
@@ -69,25 +68,5 @@ impl<'r> FromRequest<'r> for ApiKey {
       Some(key) if is_valid(key) => Outcome::Success(ApiKey),
       Some(_) => Outcome::Failure((Status::Unauthorized, ApiError::InvalidApiKey)),
     }
-  }
-}
-
-#[derive(Serialize)]
-pub struct TinySnapshot {
-  pub uid: String,
-  pub date: DateTime<Utc>,
-  pub parsed_date: DateTime<Utc>,
-  pub group: Option<Group>,
-}
-
-impl TinySnapshot {
-  pub fn new_from_snapshot<'a>(name: &'a str, snapshot: &Snapshot) -> Self {
-    let group = snapshot
-      .groups
-      .iter()
-      .find(|g| g.name == name)
-      .and_then(|g| Some(g.to_owned()));
-
-    Self { uid: snapshot.uid.clone(), date: snapshot.date, parsed_date: snapshot.parsed_date, group }
   }
 }

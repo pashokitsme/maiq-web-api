@@ -1,5 +1,5 @@
 use super::{MongoError, MongoPool};
-use maiq_parser::{utils, Snapshot};
+use maiq_parser::{utils, Fetch, Snapshot};
 use mongodb::{
   bson::{doc, DateTime},
   options::FindOptions,
@@ -36,6 +36,13 @@ impl MongoPool {
     }
 
     Ok(Some(cur.deserialize_current()?.into()))
+  }
+
+  pub async fn get_latest(&self, fetch: Fetch) -> Result<Option<Snapshot>, MongoError> {
+    match fetch {
+      Fetch::Today => self.get_latest_today().await,
+      Fetch::Tomorrow => self.get_latest_next().await,
+    }
   }
 
   pub async fn get_by_uid<'a>(&self, uid: &'a str) -> Result<Option<Snapshot>, MongoError> {

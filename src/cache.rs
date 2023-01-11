@@ -119,16 +119,21 @@ impl CachePool {
 
     self.last_update = utils::now(0);
 
-    let today = self.update(Fetch::Today).await;
-    let next = self.update(Fetch::Tomorrow).await;
-    possible_error_handler(today, next);
+    _ = self.update(Fetch::Today).await;
+    _ = self.update(Fetch::Tomorrow).await;
+
     self.next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap();
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
-    let snapshot = fetch_n_parse(&fetch).await?.snapshot;
-    info!("Parsed snapshot {}", snapshot.uid);
-    let latest = self.db.get_by_uid(snapshot.uid.as_str()).await?;
+    let parsed = fetch_n_parse(&fetch).await;
+
+    let snapshot = match parsed {
+      Ok(ref p) => p.snapshot.clone(),
+      Err(_) => self.db.get_latest(fetch.clone()).await?.ok_or(ApiError::Unknown)?, // don't care about error type cuz anyway it doesn't used
+    };
+
+    info!("Updating: {} for {:?}; from db: {}", snapshot.uid, fetch, parsed.is_err());
 
     match fetch {
       Fetch::Today => {
@@ -143,7 +148,7 @@ impl CachePool {
     self.try_cache_snapshot(&snapshot);
     debug!("Set poll: {:?}", &self.poll);
 
-    if latest.is_none() {
+    if parsed.is_err() {
       debug!("Saving snapshot..");
       self.db.save(snapshot).await?;
     }
@@ -173,16 +178,6 @@ impl CachePool {
 pub fn get_interval_from_env() -> Interval {
   let interval_secs = env::parse_var(env::UPDATE_INTERVAL).unwrap();
   time::interval(std::time::Duration::from_secs(interval_secs))
-}
-
-fn possible_error_handler(today: Result<(), ApiError>, next: Result<(), ApiError>) {
-  if let Err(err) = today {
-    error!("Error while updating cache for today: {}", err);
-  }
-
-  if let Err(err) = next {
-    error!("Error while updating cache for next day: {}", err);
-  }
 }
 
 fn cached_to_snapshot(cached: &mut CachedSnapshot) -> Snapshot {
