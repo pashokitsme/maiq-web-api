@@ -126,7 +126,8 @@ impl CachePool {
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
-    let snapshot = fetch_n_parse(&Fetch::Today).await?.snapshot;
+    let snapshot = fetch_n_parse(&fetch).await?.snapshot;
+    info!("Parsed snapshot {}", snapshot.uid);
     let latest = self.db.get_by_uid(snapshot.uid.as_str()).await?;
 
     match fetch {
@@ -176,11 +177,11 @@ pub fn get_interval_from_env() -> Interval {
 
 fn possible_error_handler(today: Result<(), ApiError>, next: Result<(), ApiError>) {
   if let Err(err) = today {
-    debug!("Error while updating cache for today: {}", err);
+    error!("Error while updating cache for today: {}", err);
   }
 
   if let Err(err) = next {
-    debug!("Error while updating cache for next day: {}", err);
+    error!("Error while updating cache for next day: {}", err);
   }
 }
 
