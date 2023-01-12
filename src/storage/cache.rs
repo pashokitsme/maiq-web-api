@@ -1,3 +1,4 @@
+use std::marker::Send;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -9,7 +10,9 @@ use tokio::{
   time::{self, Interval},
 };
 
-use crate::{api::error::ApiError, db::MongoPool, env};
+use crate::{api::error::ApiError, env, storage::MongoPool};
+
+use super::SnapshotPool;
 
 #[derive(Serialize, Clone, Debug)]
 pub struct Poll {
@@ -49,7 +52,6 @@ impl From<Snapshot> for CachedSnapshot {
     Self { added: utils::now(0), snapshot: s }
   }
 }
-
 pub struct CachePool {
   last_update: DateTime<Utc>,
   next_update: DateTime<Utc>,
@@ -83,23 +85,6 @@ impl CachePool {
     Arc::new(Mutex::new(pool))
   }
 
-  pub fn cached<'a>(&mut self, mode: Fetch) -> Option<Snapshot> {
-    let today = utils::now_date(0);
-    let mut iter = self.cached.iter_mut().rev();
-    match mode {
-      Fetch::Today => iter.find(|s| s.date == today).map(cached_to_snapshot),
-      Fetch::Tomorrow => iter.find(|s| s.date > today).map(cached_to_snapshot),
-    }
-  }
-
-  pub fn cached_by_uid<'a, 'b>(&mut self, uid: &'a str) -> Option<Snapshot> {
-    self
-      .cached
-      .iter_mut()
-      .find(|s| s.uid.as_str() == uid)
-      .map(cached_to_snapshot)
-  }
-
   pub fn poll(&self) -> Poll {
     Poll {
       latest_today_uid: self.poll.latest_today_uid.clone(),
@@ -126,7 +111,6 @@ impl CachePool {
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
-    info!("Updating: {:?}", fetch);
     let snapshot = match fetch_n_parse(&fetch).await {
       Ok(p) => Some(p.snapshot),
       Err(_) => None,
@@ -142,31 +126,20 @@ impl CachePool {
     info!("Set poll: {:?}", &self.poll);
 
     if let Some(s) = snapshot.as_ref() {
-      self.try_cache_snapshot(&s);
-
-      if self.db.get_by_uid(&s.uid).await?.is_none() {
+      self.save(&s).await?;
+      if self.db.by_uid(&s.uid).await?.is_none() {
         debug!("Saving snapshot..");
-        self.db.save(s.clone()).await?;
+        self.db.save(&s).await?;
       }
 
       return Ok(());
     }
 
-    if let Some(s) = &self.db.get_latest(fetch).await? {
-      self.try_cache_snapshot(s);
+    if let Some(s) = &self.db.latest(fetch).await? {
+      self.save(s).await?;
     }
 
     Ok(())
-  }
-
-  pub fn try_cache_snapshot(&mut self, snapshot: &Snapshot) -> bool {
-    if let Some(_) = self.cached.iter_mut().find(|s| s.uid.as_str() == snapshot.uid) {
-      return false;
-    }
-
-    info!("Caching snapshot {}", snapshot.uid);
-    self.cached.push(snapshot.clone().into());
-    return true;
   }
 
   fn purge(&mut self) {
@@ -178,12 +151,41 @@ impl CachePool {
   }
 }
 
+#[rocket::async_trait]
+impl SnapshotPool for CachePool {
+  async fn save(&mut self, snapshot: &Snapshot) -> Result<(), ApiError> {
+    if let Some(_) = self.cached.iter_mut().find(|s| s.uid.as_str() == snapshot.uid) {
+      return Ok(());
+    }
+
+    info!("Save snapshot {} to cache", snapshot.uid);
+    self.cached.push(snapshot.clone().into());
+    return Ok(());
+  }
+
+  async fn latest(&self, mode: Fetch) -> Result<Option<Snapshot>, ApiError> {
+    let today = utils::now_date(0);
+    let mut iter = self.cached.iter().rev();
+    let res = match mode {
+      Fetch::Today => iter.find(|s| s.date == today).map(|c| c.snapshot.clone()),
+      Fetch::Tomorrow => iter.find(|s| s.date > today).map(|c| c.snapshot.clone()),
+    };
+
+    Ok(res)
+  }
+
+  async fn by_uid<T: AsRef<str> + Send>(&self, uid: T) -> Result<Option<Snapshot>, ApiError> {
+    let res = self
+      .cached
+      .iter()
+      .find(|s| s.uid.as_str() == uid.as_ref())
+      .map(|c| c.snapshot.clone());
+
+    Ok(res)
+  }
+}
+
 pub fn get_interval_from_env() -> Interval {
   let interval_secs = env::parse_var(env::UPDATE_INTERVAL).unwrap();
   time::interval(std::time::Duration::from_secs(interval_secs))
-}
-
-fn cached_to_snapshot(cached: &mut CachedSnapshot) -> Snapshot {
-  cached.added = utils::now(0);
-  cached.snapshot.clone()
 }

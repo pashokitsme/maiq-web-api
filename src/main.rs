@@ -5,21 +5,20 @@ extern crate rocket;
 extern crate log;
 
 mod api;
-mod cache;
-mod db;
 mod env;
+mod storage;
 
 use api::{
   error::{internal_server_error, not_found, unauthorized},
   routes::*,
 };
 
-use cache::CachePool;
 use rocket::{
   fairing::{Fairing, Info, Kind},
   http::Header,
   Request, Response,
 };
+use storage::{cache::CachePool, mongo::MongoPool};
 
 #[rocket::main]
 async fn main() {
@@ -28,11 +27,11 @@ async fn main() {
   env::check_env_vars();
   maiq_parser::warmup_defaults();
 
-  let mongo = db::init().await.expect("Error while connecting to database");
+  let mongo = MongoPool::init().await.expect("Error while connecting to database");
   let cache = CachePool::new(mongo.clone()).await;
 
   let cache_ref = cache.clone();
-  let mut cache_interval = cache::get_interval_from_env();
+  let mut cache_interval = storage::cache::get_interval_from_env();
 
   tokio::spawn(async move {
     cache_interval.tick().await;
