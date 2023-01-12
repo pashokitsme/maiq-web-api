@@ -16,7 +16,7 @@ mod utils;
 #[derive(Debug, Clone)]
 pub enum FetchParam {
   Today,
-  Tomorrow,
+  Next,
 }
 
 impl<'a> FromParam<'a> for FetchParam {
@@ -25,7 +25,7 @@ impl<'a> FromParam<'a> for FetchParam {
   fn from_param(param: &'a str) -> Result<Self, Self::Error> {
     match param {
       "today" => Ok(FetchParam::Today),
-      "tomorrow" | "next" => Ok(FetchParam::Tomorrow),
+      "tomorrow" | "next" => Ok(FetchParam::Next),
       _ => Err(ApiError::SnapshotNotFound(param.to_string())),
     }
   }
@@ -35,7 +35,7 @@ impl Into<Fetch> for FetchParam {
   fn into(self) -> Fetch {
     match self {
       FetchParam::Today => Fetch::Today,
-      FetchParam::Tomorrow => Fetch::Tomorrow,
+      FetchParam::Next => Fetch::Next,
     }
   }
 }
@@ -44,7 +44,7 @@ impl ToString for FetchParam {
   fn to_string(&self) -> String {
     match self {
       FetchParam::Today => "today".into(),
-      FetchParam::Tomorrow => "next".into(),
+      FetchParam::Next => "next".into(),
     }
   }
 }

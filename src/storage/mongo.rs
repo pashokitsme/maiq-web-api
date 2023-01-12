@@ -94,7 +94,7 @@ impl SnapshotPool for MongoPool {
   async fn latest(&self, mode: Fetch) -> Result<Option<Snapshot>, ApiError> {
     match mode {
       Fetch::Today => self.get_latest_today().await.map_err(Into::into),
-      Fetch::Tomorrow => self.get_latest_next().await.map_err(Into::into),
+      Fetch::Next => self.get_latest_next().await.map_err(Into::into),
     }
   }
 

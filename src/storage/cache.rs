@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use chrono::{DateTime, Duration, Utc};
-use maiq_parser::{fetch_n_parse, utils, Fetch, Snapshot};
+use maiq_parser::{fetch_snapshot, utils, Fetch, Snapshot};
 use serde::Serialize;
 use tokio::{
   sync::Mutex,
@@ -105,22 +105,19 @@ impl CachePool {
     self.last_update = utils::now(0);
 
     _ = self.update(Fetch::Today).await;
-    _ = self.update(Fetch::Tomorrow).await;
+    _ = self.update(Fetch::Next).await;
 
     self.next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap();
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
-    let snapshot = match fetch_n_parse(&fetch).await {
-      Ok(p) => Some(p.snapshot),
-      Err(_) => None,
-    };
+    let snapshot = fetch_snapshot(fetch.clone()).await.ok();
 
     let uid = snapshot.as_ref().map(|s| s.uid.clone());
 
     match fetch {
       Fetch::Today => self.poll.latest_today_uid = uid,
-      Fetch::Tomorrow => self.poll.latest_next_uid = uid,
+      Fetch::Next => self.poll.latest_next_uid = uid,
     }
 
     info!("Set poll: {:?}", &self.poll);
@@ -168,7 +165,7 @@ impl SnapshotPool for CachePool {
     let mut iter = self.cached.iter().rev();
     let res = match mode {
       Fetch::Today => iter.find(|s| s.date == today).map(|c| c.snapshot.clone()),
-      Fetch::Tomorrow => iter.find(|s| s.date > today).map(|c| c.snapshot.clone()),
+      Fetch::Next => iter.find(|s| s.date > today).map(|c| c.snapshot.clone()),
     };
 
     Ok(res)
