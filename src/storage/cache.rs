@@ -113,11 +113,15 @@ impl CachePool {
     self.purge();
 
     self.last_update = utils::now(0);
+    self.poll.last_update = self.last_update;
 
     _ = self.update(Fetch::Today).await;
     _ = self.update(Fetch::Next).await;
 
     self.next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap();
+    self.poll.next_update = self.next_update;
+
+    info!("Set poll: {:?}", &self.poll);
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
@@ -127,8 +131,6 @@ impl CachePool {
       Fetch::Today => self.poll.today = InnerPoll::from_snapshot(snapshot.as_ref()),
       Fetch::Next => self.poll.next = InnerPoll::from_snapshot(snapshot.as_ref()),
     }
-
-    info!("Set poll: {:?}", &self.poll);
 
     if let Some(s) = snapshot.as_ref() {
       self.save(&s).await?;
