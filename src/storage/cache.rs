@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::marker::Send;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -14,18 +15,31 @@ use crate::{api::error::ApiError, env, storage::MongoPool};
 
 use super::SnapshotPool;
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, Default)]
 pub struct Poll {
-  pub latest_today_uid: Option<String>,
-  pub latest_next_uid: Option<String>,
+  pub today: Option<InnerPoll>,
+  pub next: Option<InnerPoll>,
   pub last_update: DateTime<Utc>,
   pub next_update: DateTime<Utc>,
 }
 
-#[derive(Debug, Default)]
-struct InnerPoll {
-  pub latest_today_uid: Option<String>,
-  pub latest_next_uid: Option<String>,
+#[derive(Serialize, Default, Debug, Clone)]
+pub struct InnerPoll {
+  pub uid: String,
+  pub groups: HashMap<String, String>,
+}
+
+impl InnerPoll {
+  fn from_snapshot(snapshot: Option<&Snapshot>) -> Option<Self> {
+    let snapshot = snapshot?;
+    let uid = snapshot.uid.clone();
+    let groups = snapshot
+      .groups
+      .iter()
+      .map(|g| (g.name.clone(), g.uid.clone()))
+      .collect::<HashMap<String, String>>();
+    Some(Self { uid, groups })
+  }
 }
 
 struct CachedSnapshot {
@@ -52,12 +66,13 @@ impl From<Snapshot> for CachedSnapshot {
     Self { added: utils::now(0), snapshot: s }
   }
 }
+
 pub struct CachePool {
   last_update: DateTime<Utc>,
   next_update: DateTime<Utc>,
 
   cached: Vec<CachedSnapshot>,
-  poll: InnerPoll,
+  poll: Poll,
 
   pub interval: Interval,
   cache_size: usize,
@@ -76,7 +91,7 @@ impl CachePool {
       cached: vec![],
       cache_size: env::parse_var(env::CACHE_SIZE).unwrap(),
       cache_age_limit: Duration::seconds(env::parse_var(env::CACHE_AGE_LIMIT).unwrap()),
-      poll: InnerPoll::default(),
+      poll: Poll::default(),
       db: mongo,
     };
 
@@ -86,12 +101,7 @@ impl CachePool {
   }
 
   pub fn poll(&self) -> Poll {
-    Poll {
-      latest_today_uid: self.poll.latest_today_uid.clone(),
-      latest_next_uid: self.poll.latest_next_uid.clone(),
-      last_update: self.last_update,
-      next_update: self.next_update,
-    }
+    self.poll.clone()
   }
 
   pub fn collect_all(&self) -> Vec<Snapshot> {
@@ -113,11 +123,9 @@ impl CachePool {
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
     let snapshot = fetch_snapshot(fetch.clone()).await.ok();
 
-    let uid = snapshot.as_ref().map(|s| s.uid.clone());
-
     match fetch {
-      Fetch::Today => self.poll.latest_today_uid = uid,
-      Fetch::Next => self.poll.latest_next_uid = uid,
+      Fetch::Today => self.poll.today = InnerPoll::from_snapshot(snapshot.as_ref()),
+      Fetch::Next => self.poll.next = InnerPoll::from_snapshot(snapshot.as_ref()),
     }
 
     info!("Set poll: {:?}", &self.poll);
