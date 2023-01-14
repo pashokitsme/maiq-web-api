@@ -46,13 +46,7 @@
 `GET` `/api/default/<weekday>/<group>`
 
 > Параметры:
-* `weekday`, соответственно:
-  * mon
-  * tue
-  * wed
-  * thu
-  * fri
-  * sat
+* `weekday`: день недели (`mon`, `tue`, `wed`, `thu`, `fri`, `sat` соответственно)
 * `group`: название группы
 
 > Ответы:

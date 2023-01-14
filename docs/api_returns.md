@@ -3,12 +3,13 @@
 ## JSON/Snapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L28-L35))
 
 ```json5
-"uid": "Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B", // уникальный ID, результат натравливания sha256 на все пары всех групп
+"uid": "anz3k0iwq3", // уникальный ID, результат натравливания sha256 на все пары всех групп
 "date": "2022-12-28T00:00:00Z", // дата, для которой предназначается снапшот
 "parsed_date": "2022-12-28T03:11:52.535Z", // дата, когда снапшот был спарсен
 "is_week_even": true, // чётная или нечётная неделя (числитель или знаменатель)
 "groups": [
   {
+    "uid": "py65x5aa11",
     "name": "Ир1-19",
     "lessons": [
       {
@@ -27,12 +28,13 @@
 ## JSON/TinySnapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L85-L91))
 Почти то же самое, что и JSON/Snapshot, но хранит в себе только одну группу
 ```json5
-"uid": "Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B", // уникальный ID, результат натравливания sha256 на все пары всех групп
+"uid": "anz3k0iwq3", // уникальный ID, результат натравливания sha256 на все пары всех групп
 "date": "2022-12-28T00:00:00Z", // дата, для которой предназначается снапшот
 "parsed_date": "2022-12-28T03:11:52.535Z", // дата, когда снапшот был спарсен
 "is_week_even": true, // чётная или нечётная неделя (числитель или знаменатель)
 "group":
 {
+  "uid": "py65x5aa11",
   "name": "Ир1-19",
   "lessons": [
     {
@@ -76,6 +78,17 @@
 
 ## JSON/Poll ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/cache.rs#L14-L20))
 ```json5
+  "today": {
+    "uid": "nex53g5ard",
+    "groups": { // словарь групп (имя=uid) и расписания для них
+      "Кс1-20": "im3x36uqrj",
+      ...
+    }
+  },
+  "next": null,
+  "last_update": "2023-01-14T11:36:24.379932800Z",
+  "next_update": "2023-01-14T11:39:29.859409500Z"
+
 "latest_today_uid": "Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B", // может быть null
 "latest_next_uid": null, // может быть null
 "last_update": "2023-01-09T18:25:22.134321500Z", // время последнего обновления
