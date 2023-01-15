@@ -151,8 +151,11 @@ impl CachePool {
 
   fn purge(&mut self) {
     let len = self.cached.len();
+    let now = utils::now_date(0);
     if len > self.cache_size {
-      self.cached.retain(|s| s.since_added() < self.cache_age_limit);
+      self
+        .cached
+        .retain(|s| s.since_added() < self.cache_age_limit && s.date >= now);
       info!("Removed {} snapshots from cache", len - self.cached.len())
     }
   }
