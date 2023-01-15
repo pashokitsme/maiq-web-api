@@ -45,7 +45,7 @@ impl MongoPool {
     let snapshots = self.get_snapshot_models();
     let today = DateTime::from_chrono(utils::now_date(0));
     let opts = FindOptions::builder()
-      .sort(doc! { "parsed_date": 1, "date": 1 })
+      .sort(doc! { "parsed_date": -1 })
       .limit(1)
       .build();
     let mut cur = snapshots.find(doc! { "date": today }, opts).await?;
@@ -61,7 +61,7 @@ impl MongoPool {
     let snapshots = self.get_snapshot_models();
     let time = DateTime::from_chrono(utils::now_date(1));
     let opts = FindOptions::builder()
-      .sort(doc! { "parsed_date": 1, "date": 1 })
+      .sort(doc! { "parsed_date": -1 })
       .limit(1)
       .build();
     let mut cur = snapshots.find(doc! { "date": { "$gte": time } }, opts).await?;
