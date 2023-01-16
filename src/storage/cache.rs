@@ -155,7 +155,7 @@ impl CachePool {
     if len > self.cache_size {
       self
         .cached
-        .retain(|s| s.since_added() < self.cache_age_limit && s.date >= now);
+        .retain(|s| s.since_added() < self.cache_age_limit || s.date >= now);
       info!("Removed {} snapshots from cache", len - self.cached.len())
     }
   }
