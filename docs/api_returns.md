@@ -1,19 +1,49 @@
 > **Все значения даты/время возвращаются в формате `UTC` без указания часового пояса, но, тем не менее, они все `UTC+3`**
 
-## JSON/Snapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L28-L35))
+## Snapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L28-L35))
 
 ```json5
-"uid": "anz3k0iwq3", // уникальный ID, результат натравливания sha256 на все пары всех групп
-"date": "2022-12-28T00:00:00Z", // дата, для которой предназначается снапшот
-"parsed_date": "2022-12-28T03:11:52.535Z", // дата, когда снапшот был спарсен
-"is_week_even": true, // чётная или нечётная неделя (числитель или знаменатель)
-"groups": [
+{
+  "date": "2023-01-19T00:00:00Z", // время, на которое предназначается снапшот
+  "parsed_date": "2023-01-18T12:43:31.459277422Z", // время, когда снапшот добавлен в базу
+  "uid": "taq0qyb1y4", // уникальный ID, результат натравливания sha256 на все пары всех групп
+  "groups": [
+    {
+      "uid": "oxveklqx7k", // uid для группы
+      "name": "Ир1-21",
+      "lessons": [
+        {
+          "num": 1, // номер пары
+          "name": "По расписанию" // может быть автоматически заменено, если указано в /default/<day>.json
+        },
+        {
+          "num": 2,
+          "name": "Теория вероятностей и математическая статистика",
+          "teacher": "Петрова Н.Г.",
+          "classroom": "304У"
+        },
+        ...
+      ]
+    },
+    ...
+  ]
+}
+```
+
+## TinySnapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L85-L91))
+Почти то же самое, что и JSON/Snapshot, но хранит в себе только одну группу
+```json5
+{
+  "date": "2023-01-19T00:00:00Z", // время, на которое предназначается снапшот
+  "parsed_date": "2023-01-18T12:43:31.459277422Z", // время, когда снапшот добавлен в базу
+  "uid": "taq0qyb1y4", // уникальный ID, результат натравливания sha256 на все пары всех групп
+  "group":
   {
     "uid": "py65x5aa11",
     "name": "Ир1-19",
     "lessons": [
       {
-        "num": 1,
+        "num": 1, // номер пары
         "name": "Стандартизация, сертификация и техническое документоведение",
         "teacher": "Юшина И.В.", // не сериализуется, если null (зачастую при name = Нет или По расписанию)
         "classroom": "208М", // не сериализуется, если null (зачастую при name = Нет или По расписанию)
@@ -21,84 +51,69 @@
       ...
     ]
   }
-  ...
-] 
+}
 ```
 
-## JSON/TinySnapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L85-L91))
-Почти то же самое, что и JSON/Snapshot, но хранит в себе только одну группу
+## DefaultDay ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/default.rs#L4-L8))
 ```json5
-"uid": "anz3k0iwq3", // уникальный ID, результат натравливания sha256 на все пары всех групп
-"date": "2022-12-28T00:00:00Z", // дата, для которой предназначается снапшот
-"parsed_date": "2022-12-28T03:11:52.535Z", // дата, когда снапшот был спарсен
-"is_week_even": true, // чётная или нечётная неделя (числитель или знаменатель)
-"group":
 {
-  "uid": "py65x5aa11",
-  "name": "Ир1-19",
+  "name": "Ир3-21",
   "lessons": [
     {
-      "num": 1, // номер пары
-      "name": "Стандартизация, сертификация и техническое документоведение",
-      "teacher": "Юшина И.В.", // не сериализуется, если null (зачастую при name = Нет или По расписанию)
-      "classroom": "208М", // не сериализуется, если null (зачастую при name = Нет или По расписанию)
+      "num": 1,
+      "name": "Компьютерные сети",
+      "is_even": true, // пара на чётной(числителе) неделе
+      "teacher": "Васильева И.С.",
+      "classroom": "207М"
+    },
+    {
+      "num": 1,
+      "name": "Элементы высшей математики",
+      "is_even": false, // пара на нечётной(знаменателе) неделе
+      "teacher": "Баранова О.Б.",
+      "classroom": "102О"
+    },
+    {
+      "num": 2,
+      "name": "Основы алгоритмизации и программирования",
+      "teacher": "Федорова Л.В.",
+      "classroom": "204М"
     },
     ...
   ]
 }
 ```
 
-## JSON/DefaultDay ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/default.rs#L4-L8))
+## Poll ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/cache.rs#L14-L20))
 ```json5
-"name": "Ир3-21",
-"lessons": [
-  {
-    "num": 1,
-    "name": "Элементы высшей математики",
-    "is_even": false, // будет ли эта пара на чётной (числителе) или нечётной (знаменателе) неделе, в ином случае не сериализуется
-    "teacher": "Баранова О.Б.",
-    "classroom": "102О"
-  },
-  {
-    "num": 1,
-    "name": "Компьютерные сети",
-    "is_even": true, // будет ли эта пара на чётной (числителе) или нечётной (знаменателе) неделе, в ином случае не сериализуется
-    "teacher": "Васильева И.С.",
-    "classroom": "207М"
-  },
-  {
-    "num": 2,
-    "name": "МДК.05.01 Проектирование и дизайн информационных систем",
-    "teacher": "Ордяков Д.Е.",
-    "classroom": "210М"
-  },
-  ...
-]
-```
-
-## JSON/Poll ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/cache.rs#L14-L20))
-```json5
+{
   "today": {
-    "uid": "nex53g5ard",
-    "groups": { // словарь групп (имя=uid) и расписания для них
-      "Кс1-20": "im3x36uqrj",
+    "uid": "taq0qyb1y4", // uid снапшота
+    "groups": {
+      "Кс5-20": "6xnhx4u4c4", // uid группы
+      "Ир1-19": "2sop49wlkc",
       ...
     }
   },
-  "next": null,
-  "last_update": "2023-01-14T11:36:24.379932800Z",
-  "next_update": "2023-01-14T11:39:29.859409500Z"
-
-"latest_today_uid": "Ne6THIVKpTdFL0Nx1rSZeyIQ0TcAfR1B", // может быть null
-"latest_next_uid": null, // может быть null
-"last_update": "2023-01-09T18:25:22.134321500Z", // время последнего обновления
-"next_update": "2023-01-09T18:28:22.841154Z" // время, в которое будет следующее обновление
+  "next": {
+    "uid": "ql784g18li",
+    "groups": {
+      "Ип1-20": "73xpbqp0di",
+      "Са3-21": "grra9ogvy4",
+      ...
+    }
+  },
+  "last_update": "2023-01-19T19:25:28.728701501Z", // последнее обновление
+  "next_update": "2023-01-19T19:28:31.416519196Z" // следующее обновление
+}
 ```
 
-## JSON/ApiError ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/api/error.rs#L11-L38))
+## ApiError ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/api/error.rs#L11-L38))
 ```json5
+{
   "cause": "route_not_matched", // ошибка
   "desc": "Failed to match (GET) /api/not_existing_path. Try something else?" // описание ошибки
+}
 ```
 
 > Возможные варианты ошибок:
