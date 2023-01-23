@@ -7,7 +7,7 @@ use chrono::{DateTime, Duration, Utc};
 use maiq_parser::{fetch_snapshot, utils, Fetch, Snapshot};
 use serde::Serialize;
 use tokio::{
-  sync::Mutex,
+  sync::RwLock,
   time::{self, Interval},
 };
 
@@ -82,7 +82,7 @@ pub struct CachePool {
 }
 
 impl CachePool {
-  pub async fn new(mongo: MongoPool) -> Arc<Mutex<Self>> {
+  pub async fn new(mongo: MongoPool) -> Arc<RwLock<Self>> {
     let interval = get_interval_from_env();
     let mut pool = Self {
       last_update: utils::now(0),
@@ -97,7 +97,7 @@ impl CachePool {
 
     pool.update_tick().await;
 
-    Arc::new(Mutex::new(pool))
+    Arc::new(RwLock::new(pool))
   }
 
   pub fn poll(&self) -> Poll {

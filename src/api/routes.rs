@@ -1,16 +1,9 @@
-use std::sync::Arc;
-
 use maiq_parser::{default::DefaultGroup, Fetch, Snapshot, TinySnapshot};
-use rocket::{http::Status, serde::json::Json, State};
-use tokio::sync::Mutex;
+use rocket::{http::Status, serde::json::Json};
 
 use crate::{
-  api::FetchParam,
-  storage::{
-    cache::{CachePool, Poll},
-    mongo::MongoPool,
-    SnapshotPool,
-  },
+  api::{CachePool, FetchParam, MongoPool},
+  storage::{cache::Poll, SnapshotPool},
 };
 
 use super::{
@@ -25,7 +18,7 @@ pub async fn index() -> Result<CustomApiError, ApiError> {
 }
 
 #[get("/default/<weekday>/<group>")]
-pub fn default<'a>(weekday: &'a str, group: &'a str) -> Result<Json<DefaultGroup>, ApiError> {
+pub fn default(weekday: &str, group: &str) -> Result<Json<DefaultGroup>, ApiError> {
   macro_rules! not_found {
     () => {
       ApiError::DefaultNotFound(weekday.into(), group.into())
@@ -45,22 +38,16 @@ pub fn default<'a>(weekday: &'a str, group: &'a str) -> Result<Json<DefaultGroup
 }
 
 #[get("/latest/<fetch>")]
-pub async fn latest(
-  fetch: FetchParam,
-  db: &State<MongoPool>,
-  cache: &State<Arc<Mutex<CachePool>>>,
-) -> Result<Json<Snapshot>, ApiError> {
-  let mut cache = cache.lock().await;
+pub async fn latest(fetch: FetchParam, db: &MongoPool, cache: &CachePool) -> Result<Json<Snapshot>, ApiError> {
   let fetch: Fetch = fetch.into();
-  if let Ok(Some(s)) = cache.latest(fetch.clone()).await {
+  if let Ok(Some(s)) = cache.read().await.latest(fetch.clone()).await {
     info!("Found cached {}!", s.uid);
     return Ok(Json(s));
   }
-
   info!("Trying to fetch {:?} snapshot from db", fetch);
   match db.latest(fetch.clone()).await? {
     Some(s) => {
-      cache.save(&s).await?;
+      cache.write().await.save(&s).await?;
       Ok(Json(s))
     }
     None => Err(ApiError::SnapshotNotFound(format!("{:?}", fetch))),
@@ -68,15 +55,14 @@ pub async fn latest(
 }
 
 #[get("/latest/<fetch>/<group>")]
-pub async fn latest_group<'g>(
+pub async fn latest_group(
   fetch: FetchParam,
-  group: &'g str,
-  db: &State<MongoPool>,
-  cache: &State<Arc<Mutex<CachePool>>>,
+  group: &str,
+  db: &MongoPool,
+  cache: &CachePool,
 ) -> Result<Json<TinySnapshot>, ApiError> {
-  let mut cache = cache.lock().await;
   let fetch: Fetch = fetch.into();
-  if let Ok(Some(s)) = cache.latest(fetch.clone()).await {
+  if let Ok(Some(s)) = cache.read().await.latest(fetch.clone()).await {
     info!("Found cached {}!", s.uid);
     return Ok(Json(s.tiny(group)));
   }
@@ -84,7 +70,7 @@ pub async fn latest_group<'g>(
   info!("Trying to fetch {:?} snapshot from db", fetch);
   match db.latest(fetch.clone()).await? {
     Some(s) => {
-      cache.save(&s).await?;
+      cache.write().await.save(&s).await?;
       Ok(Json(s.tiny(group)))
     }
     None => Err(ApiError::SnapshotNotFound(format!("{:?}", fetch))),
@@ -92,25 +78,20 @@ pub async fn latest_group<'g>(
 }
 
 #[get("/poll")]
-pub async fn poll(cache: &State<Arc<Mutex<CachePool>>>) -> Result<Json<Poll>, ApiError> {
-  Ok(Json(cache.lock().await.poll()))
+pub async fn poll(cache: &CachePool) -> Result<Json<Poll>, ApiError> {
+  Ok(Json(cache.read().await.poll()))
 }
 
 #[get("/snapshot/<uid>")]
-pub async fn snapshot_by_id<'a>(
-  uid: &'a str,
-  db: &State<MongoPool>,
-  cache: &State<Arc<Mutex<CachePool>>>,
-) -> Result<Json<Snapshot>, ApiError> {
-  let mut cache = cache.lock().await;
-  if let Ok(Some(s)) = cache.by_uid(uid).await {
+pub async fn snapshot_by_id<'a>(uid: &'a str, db: &MongoPool, cache: &CachePool) -> Result<Json<Snapshot>, ApiError> {
+  if let Ok(Some(s)) = cache.read().await.by_uid(uid).await {
     info!("Found cached {}!", s.uid);
     return Ok(Json(s));
   }
   info!("Trying to fetch snapshot {} from db", uid);
   match db.by_uid(uid).await? {
     Some(s) => {
-      cache.save(&s).await?;
+      cache.write().await.save(&s).await?;
       Ok(Json(s))
     }
     None => Err(ApiError::SnapshotNotFound(uid.into())),
@@ -118,7 +99,6 @@ pub async fn snapshot_by_id<'a>(
 }
 
 #[get("/cached")]
-pub async fn cached(_secret: ApiKey, cache: &State<Arc<Mutex<CachePool>>>) -> Result<Json<Vec<Snapshot>>, ApiError> {
-  let cache = cache.lock().await;
-  Ok(Json(cache.collect_all().clone()))
+pub async fn cached(_secret: ApiKey, cache: &CachePool) -> Result<Json<Vec<Snapshot>>, ApiError> {
+  Ok(Json(cache.read().await.collect_all().clone()))
 }

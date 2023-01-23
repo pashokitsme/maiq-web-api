@@ -37,7 +37,7 @@ async fn main() {
     cache_interval.tick().await;
     loop {
       cache_interval.tick().await;
-      cache_ref.lock().await.update_tick().await;
+      cache_ref.blocking_write().update_tick().await;
     }
   });
 

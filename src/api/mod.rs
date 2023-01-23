@@ -1,17 +1,27 @@
-use maiq_parser::Fetch;
+use std::sync::Arc;
+
 use rocket::{
   http::Status,
   request::{FromParam, FromRequest, Outcome},
-  Request,
+  Request, State,
 };
 
-use crate::env;
+use tokio::sync::RwLock;
+
+use crate::{
+  env,
+  storage::{cache, mongo},
+};
+use maiq_parser::Fetch;
 
 use self::error::ApiError;
 
 pub mod error;
 pub mod routes;
 mod utils;
+
+type CachePool = State<Arc<RwLock<cache::CachePool>>>;
+type MongoPool = State<mongo::MongoPool>;
 
 #[derive(Debug, Clone)]
 pub enum FetchParam {
