@@ -1,5 +1,5 @@
 {
-  "day": "wed", 
+  "day": "wed",
   "groups": [
     {
       "name": "Ир3-21",
@@ -14,13 +14,13 @@
           "num": 2,
           "name": "Психология общения",
           "teacher": "Емельянова С.В.",
-          "classroom": "101О"
+          "classroom": "202У"
         },
         {
           "num": 3,
           "name": "Численные методы",
           "teacher": "Ильина Н.В.",
-          "classroom": "102О"
+          "classroom": "201У"
         }
       ]
     }
