@@ -1,6 +1,6 @@
 > **Все значения даты/время возвращаются в формате `UTC` без указания часового пояса, но, тем не менее, они все `UTC+3`**
 
-## Snapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L28-L35))
+## Snapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs))
 
 ```json5
 {
@@ -30,7 +30,7 @@
 }
 ```
 
-## TinySnapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs#L85-L91))
+## TinySnapshot ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/lib.rs))
 Почти то же самое, что и JSON/Snapshot, но хранит в себе только одну группу
 ```json5
 {
@@ -54,7 +54,7 @@
 }
 ```
 
-## DefaultDay ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/default.rs#L4-L8))
+## DefaultDay ([src](https://github.com/pashokitsme/maiq-parser/blob/master/maiq-shared/src/default.rs))
 ```json5
 {
   "name": "Ир3-21",
@@ -84,7 +84,7 @@
 }
 ```
 
-## Poll ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/cache.rs#L14-L20))
+## Poll ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/cache.rs))
 ```json5
 {
   "today": {
@@ -108,7 +108,7 @@
 }
 ```
 
-## ApiError ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/api/error.rs#L11-L38))
+## ApiError ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/api/error.rs))
 ```json5
 {
   "cause": "route_not_matched", // ошибка
