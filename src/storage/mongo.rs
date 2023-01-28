@@ -1,9 +1,9 @@
 use std::ops::Deref;
 
 use maiq_parser::{utils, Fetch, Snapshot};
+use mongodb::bson::doc;
 use mongodb::bson::DateTime;
-use mongodb::options::ClientOptions;
-use mongodb::{bson::doc, options::FindOptions};
+use mongodb::options::{ClientOptions, FindOneAndReplaceOptions, FindOneOptions};
 
 use crate::env;
 use crate::{api::error::ApiError, storage::SnapshotModel};
@@ -41,36 +41,37 @@ impl MongoPool {
     Ok(MongoPool { client })
   }
 
-  pub async fn get_latest_today(&self) -> Result<Option<Snapshot>, MongoError> {
+  async fn get_latest_today(&self) -> Result<Option<Snapshot>, MongoError> {
     let snapshots = self.get_snapshot_models();
     let today = DateTime::from_chrono(utils::now_date(0));
-    let opts = FindOptions::builder()
-      .sort(doc! { "parsed_date": -1 })
-      .limit(1)
-      .build();
-    let mut cur = snapshots.find(doc! { "date": today }, opts).await?;
-    if !cur.advance().await? {
-      warn!("There is no snapshots for today");
-      return Ok(None);
-    };
-
-    Ok(Some(cur.deserialize_current()?.into()))
+    let opts = FindOneOptions::builder().sort(doc! { "parsed_date": -1 }).build();
+    let res = snapshots
+      .find_one(doc! { "date": today }, opts)
+      .await?
+      .and_then(Into::into);
+    Ok(res)
   }
 
-  pub async fn get_latest_next(&self) -> Result<Option<Snapshot>, MongoError> {
+  async fn get_latest_next(&self) -> Result<Option<Snapshot>, MongoError> {
     let snapshots = self.get_snapshot_models();
     let time = DateTime::from_chrono(utils::now_date(1));
-    let opts = FindOptions::builder()
-      .sort(doc! { "parsed_date": -1 })
-      .limit(1)
-      .build();
-    let mut cur = snapshots.find(doc! { "date": { "$gte": time } }, opts).await?;
-    if !cur.advance().await? {
-      warn!("There is no snapshots for next day");
-      return Ok(None);
-    }
+    let opts = FindOneOptions::builder().sort(doc! { "parsed_date": -1 }).build();
+    let res = snapshots
+      .find_one(doc! { "date": { "$gte": time } }, opts)
+      .await?
+      .and_then(Into::into);
+    Ok(res)
+  }
 
-    Ok(Some(cur.deserialize_current()?.into()))
+  #[allow(dead_code)]
+  pub async fn by_date(&self, date: DateTime) -> Result<Option<Snapshot>, MongoError> {
+    let snapshots = self.get_snapshot_models();
+    let opts = FindOneOptions::builder().sort(doc! { "parsed_date": -1 }).build();
+    let res = snapshots
+      .find_one(doc! { "date": date }, opts)
+      .await?
+      .and_then(Into::into);
+    Ok(res)
   }
 }
 
@@ -78,16 +79,12 @@ impl MongoPool {
 impl SnapshotPool for MongoPool {
   async fn save(&mut self, snapshot: &Snapshot) -> Result<(), ApiError> {
     let snapshots = self.get_snapshot_models();
-    let mut cur = snapshots.find(doc! { "uid": &snapshot.uid }, None).await?;
+    let model = SnapshotModel::from(snapshot);
+    let opts = FindOneAndReplaceOptions::builder().upsert(true).build();
+    snapshots
+      .find_one_and_replace(doc! { "date": model.date }, model, opts)
+      .await?;
 
-    if cur.advance().await? == true {
-      info!("Snapshot {} already exists", snapshot.uid);
-      return Ok(());
-    }
-
-    info!("Saving new snapshot {}", snapshot.uid);
-    let snapshot_internal = SnapshotModel::from(snapshot);
-    snapshots.insert_one(snapshot_internal, None).await?;
     Ok(())
   }
 

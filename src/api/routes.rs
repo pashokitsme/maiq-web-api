@@ -24,6 +24,7 @@ pub fn default(weekday: &str, group: &str) -> Result<Json<DefaultGroup>, ApiErro
       ApiError::DefaultNotFound(weekday.into(), group.into())
     };
   }
+
   let repls = &*maiq_parser::replacer::REPLECEMENTS;
   let weekday = map_weekday(weekday).ok_or(not_found!())?;
   repls
@@ -41,9 +42,9 @@ pub fn default(weekday: &str, group: &str) -> Result<Json<DefaultGroup>, ApiErro
 pub async fn latest(fetch: FetchParam, db: &MongoPool, cache: &CachePool) -> Result<Json<Snapshot>, ApiError> {
   let fetch: Fetch = fetch.into();
   if let Ok(Some(s)) = cache.read().await.latest(fetch.clone()).await {
-    info!("Found cached {}!", s.uid);
     return Ok(Json(s));
   }
+
   info!("Trying to fetch {:?} snapshot from db", fetch);
   match db.latest(fetch.clone()).await? {
     Some(s) => {
@@ -63,7 +64,6 @@ pub async fn latest_group(
 ) -> Result<Json<TinySnapshot>, ApiError> {
   let fetch: Fetch = fetch.into();
   if let Ok(Some(s)) = cache.read().await.latest(fetch.clone()).await {
-    info!("Found cached {}!", s.uid);
     return Ok(Json(s.tiny(group)));
   }
 
@@ -85,7 +85,6 @@ pub async fn poll(cache: &CachePool) -> Result<Json<Poll>, ApiError> {
 #[get("/snapshot/<uid>")]
 pub async fn snapshot_by_id<'a>(uid: &'a str, db: &MongoPool, cache: &CachePool) -> Result<Json<Snapshot>, ApiError> {
   if let Ok(Some(s)) = cache.read().await.by_uid(uid).await {
-    info!("Found cached {}!", s.uid);
     return Ok(Json(s));
   }
   info!("Trying to fetch snapshot {} from db", uid);

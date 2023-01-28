@@ -168,7 +168,12 @@ impl SnapshotPool for CachePool {
       return Ok(());
     }
 
-    info!("Save snapshot {} to cache", snapshot.uid);
+    if let Some(index) = self.cached.iter_mut().position(|s| s.date == snapshot.date) {
+      info!("Removing snapshot by date {} due to receiving new", snapshot.date);
+      self.cached.remove(index);
+    }
+
+    info!("Cached: {}", snapshot.uid);
     self.cached.push(snapshot.clone().into());
     return Ok(());
   }

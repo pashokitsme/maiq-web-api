@@ -32,6 +32,12 @@ impl Into<Snapshot> for SnapshotModel {
   }
 }
 
+impl Into<Option<Snapshot>> for SnapshotModel {
+  fn into(self) -> Option<Snapshot> {
+    Some(self.into())
+  }
+}
+
 impl From<&Snapshot> for SnapshotModel {
   fn from(s: &Snapshot) -> Self {
     Self { uid: s.uid.clone(), date: s.date.into(), parsed_date: s.parsed_date.into(), groups: s.groups.clone() }
