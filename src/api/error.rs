@@ -1,4 +1,4 @@
-use maiq_parser::error::ParserError;
+use maiq_parser::ParserError;
 use rocket::{
   http::{ContentType, Method, Status},
   response::{Responder, Result},
