@@ -31,11 +31,12 @@ async fn main() {
   let cache = CachePool::new(mongo.clone()).await;
 
   let cache_ref = cache.clone();
-  let mut cache_interval = storage::cache::get_interval_from_env();
 
   tokio::spawn(async move {
+    let mut cache_interval = storage::cache::get_interval_from_env();
     cache_interval.tick().await;
     loop {
+      info!("Wait for {:?}", cache_interval.period());
       cache_interval.tick().await;
       cache_ref.write().await.update_tick().await;
     }

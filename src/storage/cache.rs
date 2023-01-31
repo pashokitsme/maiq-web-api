@@ -118,7 +118,7 @@ impl CachePool {
     _ = self.update(Fetch::Today).await;
     _ = self.update(Fetch::Next).await;
 
-    self.next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap();
+    self.next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap() + Duration::seconds(5);
     self.poll.next_update = self.next_update;
 
     info!("Set poll: {:?}", &self.poll);
