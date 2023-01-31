@@ -27,7 +27,6 @@ impl Deref for MongoPool {
 }
 
 impl MongoPool {
-  // todo: validate collections on init
   pub async fn init() -> Result<MongoPool, MongoError> {
     let url = dotenvy::var(env::DB_URL).unwrap();
     info!("Connecting to database..");
