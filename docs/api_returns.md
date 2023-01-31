@@ -84,7 +84,7 @@
 }
 ```
 
-## Poll ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/cache.rs))
+## Poll ([src](https://github.com/pashokitsme/maiq-web-api/blob/master/src/cache.rs)) (deprecated!, спрашивай в телеге)
 ```json5
 {
   "today": {
