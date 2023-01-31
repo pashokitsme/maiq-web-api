@@ -51,14 +51,21 @@ impl Change {
     }
   }
 
-  pub fn is_same(&self, other: &str) -> bool {
+  pub fn is_same(&self) -> bool {
+    match self {
+      Self::Same(_) => true,
+      _ => false,
+    }
+  }
+
+  pub fn is_same_with(&self, other: &str) -> bool {
     match self.uid() {
       Some(x) => x == other,
       _ => false,
     }
   }
 
-  pub fn is_not_same(&self, other: &str) -> bool {
+  pub fn is_not_same_with(&self, other: &str) -> bool {
     match self.uid() {
       Some(x) => x != other,
       _ => false,
@@ -86,8 +93,8 @@ impl SnapshotChanges {
           Change::None => Change::Same(None),
           rest => rest.clone(),
         },
-        (Some(prev), Some(new)) if prev.is_same(&*new.1) => Change::Same(Some(new.1.to_string())),
-        (Some(prev), Some(new)) if prev.is_not_same(&*new.1) => Change::Update(new.1.to_string()),
+        (Some(prev), Some(new)) if prev.is_same_with(&*new.1) => Change::Same(Some(new.1.to_string())),
+        (Some(prev), Some(new)) if prev.is_not_same_with(&*new.1) => Change::Update(new.1.to_string()),
         (None, Some(new)) => Change::New(new.1.to_string()),
         _ => continue,
       };

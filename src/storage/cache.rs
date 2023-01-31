@@ -1,9 +1,9 @@
-use std::marker::Send;
 use std::ops::Deref;
 use std::sync::Arc;
+use std::{collections::HashMap, marker::Send};
 
 use chrono::{DateTime, Duration, Utc};
-use maiq_api_models::polling::Poll;
+use maiq_api_models::polling::{Change, Poll, SnapshotChanges};
 use maiq_parser::{fetch_snapshot, utils, Fetch, Snapshot};
 
 use tokio::{
@@ -72,7 +72,17 @@ impl CachePool {
   }
 
   pub fn poll(&self) -> Poll {
-    self.poll.clone()
+    let filter = |kv: &HashMap<String, Change>| {
+      kv.iter()
+        .filter(|x| !x.1.is_same())
+        .map(|x| (x.0.clone(), x.1.clone()))
+        .collect()
+    };
+
+    let today = SnapshotChanges { uid: self.poll.today.uid.clone(), groups: filter(&self.poll.today.groups) };
+    let next = SnapshotChanges { uid: self.poll.next.uid.clone(), groups: filter(&self.poll.next.groups) };
+
+    Poll { today, next, next_update: self.next_update.clone() }
   }
 
   pub fn collect_all(&self) -> Vec<Snapshot> {
