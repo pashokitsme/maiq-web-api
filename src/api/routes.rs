@@ -1,9 +1,10 @@
+use maiq_api_models::polling::Poll;
 use maiq_parser::{default::DefaultGroup, Fetch, Snapshot, TinySnapshot};
 use rocket::{http::Status, serde::json::Json};
 
 use crate::{
   api::{CachePool, FetchParam, MongoPool},
-  storage::{cache::Poll, SnapshotPool},
+  storage::SnapshotPool,
 };
 
 use super::{
