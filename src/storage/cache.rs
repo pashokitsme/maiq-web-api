@@ -127,7 +127,7 @@ impl CachePool {
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
     let snapshot = fetch_snapshot(fetch.clone()).await.ok();
 
-    info!("Got snapshot: {}", snapshot.as_ref().and_then(|s| Some(s.uid.as_str())).unwrap_or("None"));
+    info!("Parsed snapshot: {}", snapshot.as_ref().and_then(|s| Some(s.uid.as_str())).unwrap_or("None"));
 
     match fetch {
       Fetch::Today => self.poll.today = InnerPoll::from_snapshot(snapshot.as_ref()),
@@ -175,7 +175,7 @@ impl SnapshotPool for CachePool {
       self.cached.remove(index);
     }
 
-    info!("Cached: {}", snapshot.uid);
+    info!("Snapshot {} saved to cache", snapshot.uid);
     self.cached.push(snapshot.clone().into());
     return Ok(());
   }
