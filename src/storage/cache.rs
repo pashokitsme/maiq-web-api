@@ -147,7 +147,7 @@ impl SnapshotPool for CachePool {
       self.cached.remove(index);
     }
 
-    info!("Saved to cache storage: {}", snapshot.uid);
+    info!("Snapshot {} saved to cache", snapshot.uid);
     self.cached.push(snapshot.clone().into());
     return Ok(());
   }
