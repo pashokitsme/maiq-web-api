@@ -6,7 +6,6 @@ use chrono::{DateTime, Duration, Utc};
 use maiq_api_models::polling::{Change, Poll, SnapshotChanges};
 use maiq_parser::{fetch_snapshot, utils, Fetch, Snapshot};
 
-use rocket::serde::json::Json;
 use tokio::{
   sync::RwLock,
   time::{self, Interval},
@@ -42,8 +41,9 @@ impl From<Snapshot> for CachedSnapshot {
 }
 
 pub struct CachePool {
+  next_update: DateTime<Utc>,
+
   cached: Vec<CachedSnapshot>,
-  cached_poll: Json<Poll>,
   poll: Poll,
 
   pub interval: Interval,
@@ -57,12 +57,12 @@ impl CachePool {
   pub async fn new(mongo: MongoPool) -> Arc<RwLock<Self>> {
     let interval = get_interval_from_env();
     let mut pool = Self {
+      next_update: utils::now(0) + Duration::seconds(interval.period().as_secs() as i64),
       interval,
       cached: vec![],
       cache_size: env::parse_var(env::CACHE_SIZE).unwrap(),
       cache_age_limit: Duration::seconds(env::parse_var(env::CACHE_AGE_LIMIT).unwrap()),
       poll: Poll::default(),
-      cached_poll: Json(Poll::default()),
       db: mongo,
     };
 
@@ -71,8 +71,18 @@ impl CachePool {
     Arc::new(RwLock::new(pool))
   }
 
-  pub fn poll(&self) -> Json<Poll> {
-    self.cached_poll.clone()
+  pub fn poll(&self) -> Poll {
+    let filter = |kv: &HashMap<String, Change>| {
+      kv.iter()
+        .filter(|x| !x.1.is_same())
+        .map(|x| (x.0.clone(), x.1.clone()))
+        .collect()
+    };
+
+    let today = SnapshotChanges { uid: self.poll.today.uid.clone(), groups: filter(&self.poll.today.groups) };
+    let next = SnapshotChanges { uid: self.poll.next.uid.clone(), groups: filter(&self.poll.next.groups) };
+
+    Poll { today, next, next_update: self.next_update.clone() }
   }
 
   pub fn collect_all(&self) -> Vec<Snapshot> {
@@ -86,22 +96,10 @@ impl CachePool {
     _ = self.update(Fetch::Today).await;
     _ = self.update(Fetch::Next).await;
 
-    self.cache_poll();
-    info!("Poll updated to:\n{:?}", self.poll);
-  }
+    self.next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap() + Duration::seconds(5);
+    self.poll.next_update = self.next_update;
 
-  fn cache_poll(&mut self) {
-    let filter = |kv: &HashMap<String, Change>| {
-      kv.iter()
-        .filter(|x| !x.1.is_same())
-        .map(|x| (x.0.clone(), x.1.clone()))
-        .collect()
-    };
-
-    let today = SnapshotChanges { uid: self.poll.today.uid.clone(), groups: filter(&self.poll.today.groups) };
-    let next = SnapshotChanges { uid: self.poll.next.uid.clone(), groups: filter(&self.poll.next.groups) };
-
-    self.cached_poll = Json(Poll { today, next, next_update: self.poll.next_update.clone() });
+    info!("Poll updated to:\n{:?}", &self.poll);
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
