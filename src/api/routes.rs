@@ -80,7 +80,7 @@ pub async fn latest_group(
 
 #[get("/poll")]
 pub async fn poll(cache: &CachePool) -> Result<Json<Poll>, ApiError> {
-  Ok(Json(cache.read().await.poll()))
+  Ok(cache.read().await.poll())
 }
 
 #[get("/snapshot/<uid>")]
