@@ -14,8 +14,22 @@ pub struct Poll {
 impl Poll {
   pub fn update(&mut self, snapshot: Option<&Snapshot>, fetch: Fetch, next_update: DateTime<Utc>) {
     self.next_update = next_update;
-    if snapshot.is_none() {
+
+    let uid = match fetch {
+      Fetch::Today => self.today.uid.as_ref(),
+      Fetch::Next => self.next.uid.as_ref(),
+    }
+    .map(|uid| uid.as_str());
+
+    if uid == snapshot.map(|s| s.uid.as_str()) {
       return;
+    }
+
+    if snapshot.is_none() {
+      return match fetch {
+        Fetch::Today => self.today = SnapshotChanges::default(),
+        Fetch::Next => self.next = SnapshotChanges::default(),
+      };
     }
 
     let snapshot = snapshot.as_ref().unwrap();
@@ -29,7 +43,7 @@ impl Poll {
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct SnapshotChanges {
-  pub uid: String,
+  pub uid: Option<String>,
   pub groups: HashMap<String, Change>,
 }
 
@@ -100,7 +114,7 @@ impl SnapshotChanges {
       };
     }
 
-    Self { uid: snapshot.uid.clone(), groups: changes }
+    Self { uid: Some(snapshot.uid.clone()), groups: changes }
   }
 
   fn default_groups_map() -> HashMap<String, Change> {
