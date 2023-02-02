@@ -1,0 +1,11 @@
+[package]
+name = "maiq-api-models"
+version = "0.1.1"
+edition = "2021"
+
+[lib]
+
+[dependencies]
+chrono = { version = "0.4.23", features = ["serde"] }
+maiq-shared = { git = "https://github.com/pashokitsme/maiq-parser", version = "0.2.2" }
+serde = { version = "1.0.152", features = ["serde_derive"] }

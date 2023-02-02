@@ -1,11 +1,12 @@
-use std::collections::HashMap;
-use std::marker::Send;
 use std::ops::Deref;
 use std::sync::Arc;
+use std::{collections::HashMap, marker::Send};
 
 use chrono::{DateTime, Duration, Utc};
+use maiq_api_models::polling::{Change, Poll, SnapshotChanges};
 use maiq_parser::{fetch_snapshot, utils, Fetch, Snapshot};
-use serde::Serialize;
+
+use rocket::serde::json::Json;
 use tokio::{
   sync::RwLock,
   time::{self, Interval},
@@ -14,33 +15,6 @@ use tokio::{
 use crate::{api::error::ApiError, env, storage::MongoPool};
 
 use super::SnapshotPool;
-
-#[derive(Serialize, Clone, Debug, Default)]
-pub struct Poll {
-  pub today: Option<InnerPoll>,
-  pub next: Option<InnerPoll>,
-  pub last_update: DateTime<Utc>,
-  pub next_update: DateTime<Utc>,
-}
-
-#[derive(Serialize, Default, Debug, Clone)]
-pub struct InnerPoll {
-  pub uid: String,
-  pub groups: HashMap<String, String>,
-}
-
-impl InnerPoll {
-  fn from_snapshot(snapshot: Option<&Snapshot>) -> Option<Self> {
-    let snapshot = snapshot?;
-    let uid = snapshot.uid.clone();
-    let groups = snapshot
-      .groups
-      .iter()
-      .map(|g| (g.name.clone(), g.uid.clone()))
-      .collect::<HashMap<String, String>>();
-    Some(Self { uid, groups })
-  }
-}
 
 struct CachedSnapshot {
   added: DateTime<Utc>,
@@ -68,10 +42,8 @@ impl From<Snapshot> for CachedSnapshot {
 }
 
 pub struct CachePool {
-  last_update: DateTime<Utc>,
-  next_update: DateTime<Utc>,
-
   cached: Vec<CachedSnapshot>,
+  cached_poll: Json<Poll>,
   poll: Poll,
 
   pub interval: Interval,
@@ -85,13 +57,12 @@ impl CachePool {
   pub async fn new(mongo: MongoPool) -> Arc<RwLock<Self>> {
     let interval = get_interval_from_env();
     let mut pool = Self {
-      last_update: utils::now(0),
-      next_update: utils::now(0) + Duration::seconds(interval.period().as_secs() as i64),
       interval,
       cached: vec![],
       cache_size: env::parse_var(env::CACHE_SIZE).unwrap(),
       cache_age_limit: Duration::seconds(env::parse_var(env::CACHE_AGE_LIMIT).unwrap()),
       poll: Poll::default(),
+      cached_poll: Json(Poll::default()),
       db: mongo,
     };
 
@@ -100,8 +71,8 @@ impl CachePool {
     Arc::new(RwLock::new(pool))
   }
 
-  pub fn poll(&self) -> Poll {
-    self.poll.clone()
+  pub fn poll(&self) -> Json<Poll> {
+    self.cached_poll.clone()
   }
 
   pub fn collect_all(&self) -> Vec<Snapshot> {
@@ -112,40 +83,43 @@ impl CachePool {
     info!("Updating cache..");
     self.purge();
 
-    self.last_update = utils::now(0);
-    self.poll.last_update = self.last_update;
-
     _ = self.update(Fetch::Today).await;
     _ = self.update(Fetch::Next).await;
 
-    self.next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap() + Duration::seconds(5);
-    self.poll.next_update = self.next_update;
+    self.cache_poll();
+    info!("Poll updated to:\n{:?}", self.poll);
+  }
 
-    info!("Set poll: {:?}", &self.poll);
+  fn cache_poll(&mut self) {
+    let filter = |kv: &HashMap<String, Change>| {
+      kv.iter()
+        .filter(|x| !x.1.is_same())
+        .map(|x| (x.0.clone(), x.1.clone()))
+        .collect()
+    };
+
+    let today = SnapshotChanges { uid: self.poll.today.uid.clone(), groups: filter(&self.poll.today.groups) };
+    let next = SnapshotChanges { uid: self.poll.next.uid.clone(), groups: filter(&self.poll.next.groups) };
+
+    self.cached_poll = Json(Poll { today, next, next_update: self.poll.next_update.clone() });
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
     let snapshot = fetch_snapshot(fetch.clone()).await.ok();
 
-    info!("Parsed snapshot: {}", snapshot.as_ref().and_then(|s| Some(s.uid.as_str())).unwrap_or("None"));
-
-    match fetch {
-      Fetch::Today => self.poll.today = InnerPoll::from_snapshot(snapshot.as_ref()),
-      Fetch::Next => self.poll.next = InnerPoll::from_snapshot(snapshot.as_ref()),
-    }
+    info!("Parsed snapshot {}", snapshot.as_ref().and_then(|s| Some(s.uid.as_str())).unwrap_or("None"));
+    let next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap() + Duration::seconds(5);
+    self
+      .poll
+      .update(snapshot.as_ref(), fetch.clone(), next_update.clone());
 
     if let Some(s) = snapshot.as_ref() {
       self.save(&s).await?;
       if self.db.by_uid(&s.uid).await?.is_none() {
-        debug!("Saving snapshot..");
         self.db.save(&s).await?;
       }
 
       return Ok(());
-    }
-
-    if let Some(s) = &self.db.latest(fetch).await? {
-      self.save(s).await?;
     }
 
     Ok(())

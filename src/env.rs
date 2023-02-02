@@ -18,6 +18,8 @@ env_var!(CACHE_AGE_LIMIT, "CACHE_AGE_LIMIT_SECS");
 env_var!(DB_URL, "DATABASE_CONNECTION_URL");
 env_var!(DEFAULT_DB, "DEFAULT_DATABASE_NAME");
 
+env_var!(GROUPS);
+
 pub fn parse_var<T: FromStr>(var: &'static str) -> Option<T> {
   self::var(var).and_then(|x| x.parse().ok())
 }
@@ -48,6 +50,8 @@ pub fn check_env_vars() {
 
   failed |= !check::<String>(DB_URL);
   failed |= !check::<String>(DEFAULT_DB);
+
+  failed |= !check::<String>(GROUPS);
 
   failed.then(|| panic!("Not all environment args are set"));
 }

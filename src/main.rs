@@ -20,6 +20,7 @@ use rocket::{
   http::Header,
   Request, Response,
 };
+
 use storage::{cache::CachePool, mongo::MongoPool};
 use tokio::sync::RwLock;
 
@@ -32,10 +33,9 @@ async fn main() {
 
   let mongo = MongoPool::init().await.expect("Error while connecting to database");
   let cache = CachePool::new(mongo.clone()).await;
+  cache.write().await.update_tick().await;
 
-  let cache_ref = cache.clone();
-
-  start_cache_updater(cache_ref);
+  start_cache_updater(cache.clone());
 
   let mongo_ref = mongo.clone();
   let cache_ref = cache.clone();
@@ -62,7 +62,7 @@ fn start_cache_updater(cache: Arc<RwLock<CachePool>>) {
         let mut cache_interval = storage::cache::get_interval_from_env();
         cache_interval.tick().await;
         loop {
-          info!("Wait for {:?}", cache_interval.period());
+          info!("Sleeping for {:?}", cache_interval.period());
           cache_interval.tick().await;
           cache_ref.write().await.update_tick().await;
         }
