@@ -15,16 +15,6 @@ impl Poll {
   pub fn update(&mut self, snapshot: Option<&Snapshot>, fetch: Fetch, next_update: DateTime<Utc>) {
     self.next_update = next_update;
 
-    let uid = match fetch {
-      Fetch::Today => self.today.uid.as_ref(),
-      Fetch::Next => self.next.uid.as_ref(),
-    }
-    .map(|uid| uid.as_str());
-
-    if uid == snapshot.map(|s| s.uid.as_str()) {
-      return;
-    }
-
     if snapshot.is_none() {
       return match fetch {
         Fetch::Today => self.today = SnapshotChanges::default(),
