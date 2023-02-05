@@ -87,11 +87,13 @@ impl SnapshotChanges {
         .iter()
         .find(|g| *g.0 == *group_name)
         .and_then(|x| Some(x.1));
+
       let new = snapshot
         .groups
         .iter()
         .find(|g| g.name == *group_name)
         .map(|g| (&*g.name, &*g.uid));
+
       *group_change = match (prev, new) {
         (Some(prev), None) => match prev {
           Change::None => Change::Same(None),
@@ -100,6 +102,7 @@ impl SnapshotChanges {
         (Some(prev), Some(new)) if prev.is_same_with(&*new.1) => Change::Same(Some(new.1.to_string())),
         (Some(prev), Some(new)) if prev.is_not_same_with(&*new.1) => Change::Update(new.1.to_string()),
         (None, Some(new)) => Change::New(new.1.to_string()),
+        (None, None) => Change::Same(None),
         _ => continue,
       };
     }
