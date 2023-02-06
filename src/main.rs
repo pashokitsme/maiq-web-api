@@ -8,8 +8,6 @@ mod api;
 mod env;
 mod storage;
 
-use std::{sync::Arc, time::Duration};
-
 use api::{
   error::{internal_server_error, not_found, unauthorized},
   routes::*,
@@ -22,7 +20,6 @@ use rocket::{
 };
 
 use storage::{cache::CachePool, mongo::MongoPool};
-use tokio::sync::RwLock;
 
 #[rocket::main]
 async fn main() {
@@ -35,10 +32,7 @@ async fn main() {
   let cache = CachePool::new(mongo.clone()).await;
   cache.write().await.update_tick().await;
 
-  start_cache_updater(cache.clone());
-
-  let mongo_ref = mongo.clone();
-  let cache_ref = cache.clone();
+  storage::cache::run_updater(cache.clone());
 
   _ = rocket::build()
     .register("/", catchers![not_found, internal_server_error, unauthorized])
@@ -46,32 +40,11 @@ async fn main() {
     .mount("/api", routes![index, latest, latest_group, poll, snapshot_by_id, default])
     .mount("/api/dev", routes![cached])
     .attach(Cors)
-    .manage(mongo_ref)
-    .manage(cache_ref)
+    .manage(mongo)
+    .manage(cache)
     .launch()
     .await
     .expect("Error while running Rocket");
-}
-
-fn start_cache_updater(cache: Arc<RwLock<CachePool>>) {
-  tokio::spawn(async move {
-    let cache_ref = cache.clone();
-    loop {
-      let cache_ref = cache_ref.clone();
-      _ = tokio::spawn(async move {
-        let mut cache_interval = storage::cache::get_interval_from_env();
-        cache_interval.tick().await;
-        loop {
-          info!("Sleeping for {:?}", cache_interval.period());
-          cache_interval.tick().await;
-          cache_ref.write().await.update_tick().await;
-        }
-      })
-      .await;
-      error!("Seems snapshot updater is panicked. Restarting thread in 10s!");
-      tokio::time::sleep(Duration::from_secs(10)).await;
-    }
-  });
 }
 
 struct Cors;

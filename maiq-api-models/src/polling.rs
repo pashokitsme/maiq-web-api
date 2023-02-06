@@ -1,6 +1,7 @@
 use std::{collections::HashMap, env};
 
 use chrono::{DateTime, Utc};
+use log::info;
 use maiq_shared::{Fetch, Snapshot};
 use serde::{Deserialize, Serialize};
 
@@ -79,6 +80,7 @@ impl Change {
 
 impl SnapshotChanges {
   pub fn distinct(&self, snapshot: &Snapshot) -> Self {
+    info!("Comparing changes {:?} with snapshot {:?}", self.uid, snapshot.uid);
     let mut changes = Self::default_groups_map();
 
     for (group_name, group_change) in changes.iter_mut() {
@@ -102,7 +104,6 @@ impl SnapshotChanges {
         (Some(prev), Some(new)) if prev.is_same_with(&*new.1) => Change::Same(Some(new.1.to_string())),
         (Some(prev), Some(new)) if prev.is_not_same_with(&*new.1) => Change::Update(new.1.to_string()),
         (None, Some(new)) => Change::New(new.1.to_string()),
-        (None, None) => Change::Same(None),
         _ => continue,
       };
     }

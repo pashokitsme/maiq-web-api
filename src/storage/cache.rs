@@ -2,19 +2,61 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::{collections::HashMap, marker::Send};
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, NaiveTime, Utc};
 use maiq_api_models::polling::{Change, Poll, SnapshotChanges};
 use maiq_parser::{fetch_snapshot, utils, Fetch, Snapshot};
 
 use rocket::serde::json::Json;
-use tokio::{
-  sync::RwLock,
-  time::{self, Interval},
-};
+use tokio::time;
+use tokio::{sync::RwLock, time::Interval};
 
 use crate::{api::error::ApiError, env, storage::MongoPool};
 
 use super::SnapshotPool;
+
+pub fn run_updater(cache: Arc<RwLock<CachePool>>) {
+  tokio::spawn(async move {
+    let cache = cache.clone();
+    loop {
+      let cache_ref = cache.clone();
+      let cleaner = tokio::spawn(async move {
+        loop {
+          let now = utils::now(0).time();
+          let wait_s = NaiveTime::from_hms_opt(23, 59, 59)
+            .unwrap()
+            .signed_duration_since(now)
+            .num_seconds()
+            + 1;
+
+          info!("Waiting for {}s to drop previous day poll", wait_s);
+          tokio::time::sleep(std::time::Duration::from_secs(wait_s as u64)).await;
+          cache_ref.write().await.reset();
+        }
+      });
+
+      let cache_ref = cache.clone();
+
+      let updater = tokio::spawn(async move {
+        let mut cache_interval = get_interval_from_env();
+        cache_interval.tick().await;
+        loop {
+          info!("Sleeping for {:?}", cache_interval.period());
+          cache_interval.tick().await;
+          cache_ref.write().await.update_tick().await;
+        }
+      });
+
+      _ = tokio::join!(cleaner, updater);
+      error!("Seems snapshot updater is panicked. Restarting thread in 10s!");
+      tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+    }
+  });
+}
+
+fn get_interval_from_env() -> Interval {
+  let interval_secs = env::parse_var(env::UPDATE_INTERVAL).unwrap();
+  time::interval(std::time::Duration::from_secs(interval_secs))
+}
 
 struct CachedSnapshot {
   added: DateTime<Utc>,
@@ -88,6 +130,11 @@ impl CachePool {
 
     self.cache_poll();
     info!("Poll updated to:\n{:?}", self.poll);
+  }
+
+  pub fn reset(&mut self) {
+    warn!("Poll dropped!");
+    self.poll = Poll::default();
   }
 
   fn cache_poll(&mut self) {
@@ -174,9 +221,4 @@ impl SnapshotPool for CachePool {
 
     Ok(res)
   }
-}
-
-pub fn get_interval_from_env() -> Interval {
-  let interval_secs = env::parse_var(env::UPDATE_INTERVAL).unwrap();
-  time::interval(std::time::Duration::from_secs(interval_secs))
 }
