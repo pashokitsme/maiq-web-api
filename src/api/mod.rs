@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use chrono::Weekday;
 use rocket::{
   http::Status,
   request::{FromParam, FromRequest, Outcome},
@@ -18,7 +19,6 @@ use self::error::ApiError;
 
 pub mod error;
 pub mod routes;
-mod utils;
 
 type CachePool = State<Arc<RwLock<cache::CachePool>>>;
 type MongoPool = State<mongo::MongoPool>;
@@ -79,4 +79,18 @@ impl<'r> FromRequest<'r> for ApiKey {
       Some(_) => Outcome::Failure((Status::Unauthorized, ApiError::InvalidApiKey)),
     }
   }
+}
+
+pub fn map_weekday<'a>(weekday: &'a str) -> Option<Weekday> {
+  let day = match weekday.to_lowercase().as_str() {
+    "mon" => Weekday::Mon,
+    "tue" => Weekday::Tue,
+    "wed" => Weekday::Wed,
+    "thu" => Weekday::Thu,
+    "fri" => Weekday::Fri,
+    "sat" => Weekday::Sat,
+    "sun" => Weekday::Sun,
+    _ => return None,
+  };
+  Some(day)
 }

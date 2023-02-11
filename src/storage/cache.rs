@@ -2,11 +2,12 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::{collections::HashMap, marker::Send};
 
-use chrono::{DateTime, Duration, NaiveTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use maiq_api_models::polling::{Change, Poll, SnapshotChanges};
-use maiq_parser::{fetch_snapshot, utils, Fetch, Snapshot};
+use maiq_parser::{fetch_snapshot, utils::time::*, Fetch, Snapshot};
 
 use rocket::serde::json::Json;
+
 use tokio::time;
 use tokio::{sync::RwLock, time::Interval};
 
@@ -14,48 +15,8 @@ use crate::{api::error::ApiError, env, storage::MongoPool};
 
 use super::SnapshotPool;
 
-pub fn run_updater(cache: Arc<RwLock<CachePool>>) {
-  tokio::spawn(async move {
-    let cache = cache.clone();
-    loop {
-      let cache_ref = cache.clone();
-      let cleaner = tokio::spawn(async move {
-        loop {
-          let now = utils::now(0).time();
-          let wait_s = NaiveTime::from_hms_opt(23, 59, 59)
-            .unwrap()
-            .signed_duration_since(now)
-            .num_seconds()
-            + 1;
-
-          info!("Waiting for {}s to drop previous day poll", wait_s);
-          tokio::time::sleep(std::time::Duration::from_secs(wait_s as u64)).await;
-          cache_ref.write().await.reset();
-        }
-      });
-
-      let cache_ref = cache.clone();
-
-      let updater = tokio::spawn(async move {
-        let mut cache_interval = get_interval_from_env();
-        cache_interval.tick().await;
-        loop {
-          info!("Sleeping for {:?}", cache_interval.period());
-          cache_interval.tick().await;
-          cache_ref.write().await.update_tick().await;
-        }
-      });
-
-      _ = tokio::join!(cleaner, updater);
-      error!("Seems snapshot updater is panicked. Restarting thread in 10s!");
-      tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-    }
-  });
-}
-
-fn get_interval_from_env() -> Interval {
-  let interval_secs = env::parse_var(env::UPDATE_INTERVAL).unwrap();
-  time::interval(std::time::Duration::from_secs(interval_secs))
+pub fn interval() -> Interval {
+  time::interval(std::time::Duration::from_secs(env::parse_var(env::UPDATE_INTERVAL).unwrap()))
 }
 
 struct CachedSnapshot {
@@ -73,13 +34,13 @@ impl Deref for CachedSnapshot {
 
 impl CachedSnapshot {
   pub fn since_added(&self) -> Duration {
-    utils::now(0) - self.added
+    now() - self.added
   }
 }
 
 impl From<Snapshot> for CachedSnapshot {
   fn from(s: Snapshot) -> Self {
-    Self { added: utils::now(0), snapshot: s }
+    Self { added: now(), snapshot: s }
   }
 }
 
@@ -97,9 +58,8 @@ pub struct CachePool {
 
 impl CachePool {
   pub async fn new(mongo: MongoPool) -> Arc<RwLock<Self>> {
-    let interval = get_interval_from_env();
     let mut pool = Self {
-      interval,
+      interval: interval(),
       cached: vec![],
       cache_size: env::parse_var(env::CACHE_SIZE).unwrap(),
       cache_age_limit: Duration::seconds(env::parse_var(env::CACHE_AGE_LIMIT).unwrap()),
@@ -109,7 +69,6 @@ impl CachePool {
     };
 
     pool.update_tick().await;
-
     Arc::new(RwLock::new(pool))
   }
 
@@ -155,7 +114,7 @@ impl CachePool {
     let snapshot = fetch_snapshot(fetch.clone()).await.ok();
 
     info!("Parsed snapshot {}", snapshot.as_ref().and_then(|s| Some(s.uid.as_str())).unwrap_or("None"));
-    let next_update = utils::now(0) + chrono::Duration::from_std(self.interval.period()).unwrap() + Duration::seconds(5);
+    let next_update = now() + chrono::Duration::from_std(self.interval.period()).unwrap() + Duration::seconds(5);
     self
       .poll
       .update(snapshot.as_ref(), fetch.clone(), next_update.clone());
@@ -174,7 +133,7 @@ impl CachePool {
 
   fn purge(&mut self) {
     let len = self.cached.len();
-    let now = utils::now_date(0);
+    let now = now_date();
     if len > self.cache_size {
       self
         .cached
@@ -202,7 +161,7 @@ impl SnapshotPool for CachePool {
   }
 
   async fn latest(&self, mode: Fetch) -> Result<Option<Snapshot>, ApiError> {
-    let today = utils::now_date(0);
+    let today = now_date();
     let mut iter = self.cached.iter().rev();
     let res = match mode {
       Fetch::Today => iter.find(|s| s.date == today).map(|c| c.snapshot.clone()),

@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use maiq_parser::{utils, Fetch, Snapshot};
+use maiq_parser::{utils::time::*, Fetch, Snapshot};
 use mongodb::bson::doc;
 use mongodb::bson::DateTime;
 use mongodb::options::{ClientOptions, FindOneAndReplaceOptions, FindOneOptions};
@@ -42,7 +42,7 @@ impl MongoPool {
 
   async fn get_latest_today(&self) -> Result<Option<Snapshot>, MongoError> {
     let snapshots = self.get_snapshot_models();
-    let today = DateTime::from_chrono(utils::now_date(0));
+    let today = DateTime::from_chrono(now_date());
     let opts = FindOneOptions::builder().sort(doc! { "parsed_date": -1 }).build();
     let res = snapshots
       .find_one(doc! { "date": today }, opts)
@@ -53,7 +53,7 @@ impl MongoPool {
 
   async fn get_latest_next(&self) -> Result<Option<Snapshot>, MongoError> {
     let snapshots = self.get_snapshot_models();
-    let time = DateTime::from_chrono(utils::now_date(1));
+    let time = DateTime::from_chrono(now_date_offset(1));
     let opts = FindOneOptions::builder().sort(doc! { "parsed_date": -1 }).build();
     let res = snapshots
       .find_one(doc! { "date": { "$gte": time } }, opts)

@@ -3,13 +3,12 @@ use maiq_parser::{default::DefaultGroup, Fetch, Snapshot, TinySnapshot};
 use rocket::{http::Status, serde::json::Json};
 
 use crate::{
-  api::{CachePool, FetchParam, MongoPool},
+  api::{map_weekday, CachePool, FetchParam, MongoPool},
   storage::SnapshotPool,
 };
 
 use super::{
   error::{ApiError, CustomApiError},
-  utils::map_weekday,
   ApiKey,
 };
 
