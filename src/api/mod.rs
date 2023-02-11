@@ -1,6 +1,8 @@
+use std::ops::Deref;
 use std::sync::Arc;
 
 use chrono::Weekday;
+use mongodb::bson::DateTime;
 use rocket::{
   http::Status,
   request::{FromParam, FromRequest, Outcome},
@@ -23,39 +25,44 @@ pub mod routes;
 type CachePool = State<Arc<RwLock<cache::CachePool>>>;
 type MongoPool = State<mongo::MongoPool>;
 
-#[derive(Debug, Clone)]
-pub enum FetchParam {
-  Today,
-  Next,
-}
+#[derive(Debug)]
+pub struct FetchParam(Fetch);
 
-impl<'a> FromParam<'a> for FetchParam {
+impl FromParam<'_> for FetchParam {
   type Error = ApiError;
 
-  fn from_param(param: &'a str) -> Result<Self, Self::Error> {
+  fn from_param(param: &str) -> Result<Self, Self::Error> {
     match param {
-      "today" => Ok(FetchParam::Today),
-      "tomorrow" | "next" => Ok(FetchParam::Next),
-      _ => Err(ApiError::SnapshotNotFound(param.to_string())),
+      "today" => Ok(FetchParam(Fetch::Today)),
+      "tomorrow" | "next" => Ok(FetchParam(Fetch::Next)),
+      _ => Err(ApiError::InvalidQueryParam(param.to_string())),
     }
   }
 }
 
-impl Into<Fetch> for FetchParam {
-  fn into(self) -> Fetch {
-    match self {
-      FetchParam::Today => Fetch::Today,
-      FetchParam::Next => Fetch::Next,
-    }
+impl Deref for FetchParam {
+  type Target = Fetch;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }
 
-impl ToString for FetchParam {
-  fn to_string(&self) -> String {
-    match self {
-      FetchParam::Today => "today".into(),
-      FetchParam::Next => "next".into(),
-    }
+pub struct DateParam(DateTime);
+
+impl FromParam<'_> for DateParam {
+  type Error = ApiError;
+
+  fn from_param(param: &str) -> Result<Self, Self::Error> {
+    let err = || ApiError::InvalidQueryParam(param.into());
+    let parse = |x: &str| x.parse().ok();
+    let mut slice = param.split('.');
+    let d = slice.next().and_then(parse).ok_or_else(err)?;
+    let m = slice.next().and_then(parse).ok_or_else(err)?;
+    let y = slice.next().and_then(|y| y.parse::<i32>().ok()).ok_or_else(err)?;
+
+    let date = DateTime::builder().day(d).month(m).year(y).build();
+    Ok(DateParam(date.map_err(|_| err())?))
   }
 }
 

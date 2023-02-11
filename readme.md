@@ -4,7 +4,7 @@
 Стек: [**Rocket**](https://rocket.rs/) + **MongoDB** + [**maiq-parser**](https://github.com/pashokitsme/maiq-parser)
 
 
-## Докуменация
+## Докуменация (немного устарела)
 
 > Хост API: https://maiq.pashok.me/ \
 [/docs](https://github.com/pashokitsme/maiq-web-api/tree/master/docs)

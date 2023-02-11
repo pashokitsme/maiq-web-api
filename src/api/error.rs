@@ -33,6 +33,9 @@ pub enum ApiError {
   #[error("{0}")]
   ParserError(ParserError),
 
+  #[error("Invalid query param provided. Param value is `{0}`")]
+  InvalidQueryParam(String),
+
   #[error("Invalid API Key")]
   InvalidApiKey,
 
@@ -66,6 +69,7 @@ impl ApiError {
       ApiError::SnapshotNotFound(..) => Status::NotFound,
       ApiError::DefaultNotFound(..) => Status::NotFound,
       ApiError::ParserError(..) => Status::InternalServerError,
+      ApiError::InvalidQueryParam(..) => Status::BadRequest,
       ApiError::InvalidApiKey => Status::Unauthorized,
       ApiError::Unknown => Status::InternalServerError,
     }
@@ -78,6 +82,7 @@ impl ApiError {
       ApiError::SnapshotNotFound(..) => "snapshot_not_found",
       ApiError::DefaultNotFound(..) => "default_not_found",
       ApiError::ParserError(..) => "internal_parser_err",
+      ApiError::InvalidQueryParam(..) => "invalid_query_param",
       ApiError::InvalidApiKey => "invalid_api_key",
       ApiError::Unknown => "unknown",
     }

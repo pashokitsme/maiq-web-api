@@ -1,5 +1,5 @@
 use maiq_api_models::polling::Poll;
-use maiq_parser::{default::DefaultGroup, Fetch, Snapshot, TinySnapshot};
+use maiq_parser::{default::DefaultGroup, Snapshot, TinySnapshot};
 use rocket::{http::Status, serde::json::Json};
 
 use crate::{
@@ -9,7 +9,7 @@ use crate::{
 
 use super::{
   error::{ApiError, CustomApiError},
-  ApiKey,
+  ApiKey, DateParam,
 };
 
 #[get("/")]
@@ -40,13 +40,12 @@ pub fn default(weekday: &str, group: &str) -> Result<Json<DefaultGroup>, ApiErro
 
 #[get("/latest/<fetch>")]
 pub async fn latest(fetch: FetchParam, db: &MongoPool, cache: &CachePool) -> Result<Json<Snapshot>, ApiError> {
-  let fetch: Fetch = fetch.into();
-  if let Ok(Some(s)) = cache.read().await.latest(fetch.clone()).await {
+  if let Ok(Some(s)) = cache.read().await.latest(*fetch).await {
     return Ok(Json(s));
   }
 
-  info!("Trying to fetch {:?} snapshot from db", fetch);
-  match db.latest(fetch.clone()).await? {
+  info!("Trying to fetch {:?} snapshot from db", *fetch);
+  match db.latest(*fetch).await? {
     Some(s) => {
       cache.write().await.save(&s).await?;
       Ok(Json(s))
@@ -62,13 +61,12 @@ pub async fn latest_group(
   db: &MongoPool,
   cache: &CachePool,
 ) -> Result<Json<TinySnapshot>, ApiError> {
-  let fetch: Fetch = fetch.into();
-  if let Ok(Some(s)) = cache.read().await.latest(fetch.clone()).await {
+  if let Ok(Some(s)) = cache.read().await.latest(*fetch).await {
     return Ok(Json(s.tiny(group)));
   }
 
   info!("Trying to fetch {:?} snapshot from db", fetch);
-  match db.latest(fetch.clone()).await? {
+  match db.latest(*fetch).await? {
     Some(s) => {
       cache.write().await.save(&s).await?;
       Ok(Json(s.tiny(group)))
@@ -82,8 +80,19 @@ pub async fn poll(cache: &CachePool) -> Result<Json<Poll>, ApiError> {
   Ok(cache.read().await.poll())
 }
 
-#[get("/snapshot/<uid>")]
-pub async fn snapshot_by_id<'a>(uid: &'a str, db: &MongoPool, cache: &CachePool) -> Result<Json<Snapshot>, ApiError> {
+#[get("/date/<date>")]
+pub async fn snapshot_by_date(date: Result<DateParam, ApiError>, db: &MongoPool) -> Result<Json<Snapshot>, ApiError> {
+  let date = date?.0;
+  let s = db
+    .by_date(date)
+    .await?
+    .ok_or_else(|| ApiError::SnapshotNotFound(format!("{}", date)))?;
+
+  Ok(Json(s))
+}
+
+#[get("/uid/<uid>")]
+pub async fn snapshot_by_id(uid: &str, db: &MongoPool, cache: &CachePool) -> Result<Json<Snapshot>, ApiError> {
   if let Ok(Some(s)) = cache.read().await.by_uid(uid).await {
     return Ok(Json(s));
   }
@@ -93,7 +102,7 @@ pub async fn snapshot_by_id<'a>(uid: &'a str, db: &MongoPool, cache: &CachePool)
       cache.write().await.save(&s).await?;
       Ok(Json(s))
     }
-    None => Err(ApiError::SnapshotNotFound(uid.into())),
+    None => Err(ApiError::SnapshotNotFound(uid.to_string())),
   }
 }
 
