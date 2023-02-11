@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::sync::Arc;
 
 use chrono::Weekday;
@@ -23,39 +24,26 @@ pub mod routes;
 type CachePool = State<Arc<RwLock<cache::CachePool>>>;
 type MongoPool = State<mongo::MongoPool>;
 
-#[derive(Debug, Clone)]
-pub enum FetchParam {
-  Today,
-  Next,
-}
+#[derive(Debug)]
+pub struct FetchParam(Fetch);
 
-impl<'a> FromParam<'a> for FetchParam {
+impl FromParam<'_> for FetchParam {
   type Error = ApiError;
 
-  fn from_param(param: &'a str) -> Result<Self, Self::Error> {
+  fn from_param(param: &str) -> Result<Self, Self::Error> {
     match param {
-      "today" => Ok(FetchParam::Today),
-      "tomorrow" | "next" => Ok(FetchParam::Next),
+      "today" => Ok(FetchParam(Fetch::Today)),
+      "tomorrow" | "next" => Ok(FetchParam(Fetch::Next)),
       _ => Err(ApiError::SnapshotNotFound(param.to_string())),
     }
   }
 }
 
-impl Into<Fetch> for FetchParam {
-  fn into(self) -> Fetch {
-    match self {
-      FetchParam::Today => Fetch::Today,
-      FetchParam::Next => Fetch::Next,
-    }
-  }
-}
+impl Deref for FetchParam {
+  type Target = Fetch;
 
-impl ToString for FetchParam {
-  fn to_string(&self) -> String {
-    match self {
-      FetchParam::Today => "today".into(),
-      FetchParam::Next => "next".into(),
-    }
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }
 

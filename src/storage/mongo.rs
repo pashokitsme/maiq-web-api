@@ -62,7 +62,6 @@ impl MongoPool {
     Ok(res)
   }
 
-  #[allow(dead_code)]
   pub async fn by_date(&self, date: DateTime) -> Result<Option<Snapshot>, MongoError> {
     let snapshots = self.get_snapshot_models();
     let opts = FindOneOptions::builder().sort(doc! { "parsed_date": -1 }).build();
