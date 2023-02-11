@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use chrono::Weekday;
+use mongodb::bson::DateTime;
 use rocket::{
   http::Status,
   request::{FromParam, FromRequest, Outcome},
@@ -34,7 +35,7 @@ impl FromParam<'_> for FetchParam {
     match param {
       "today" => Ok(FetchParam(Fetch::Today)),
       "tomorrow" | "next" => Ok(FetchParam(Fetch::Next)),
-      _ => Err(ApiError::SnapshotNotFound(param.to_string())),
+      _ => Err(ApiError::InvalidQueryParam(param.to_string())),
     }
   }
 }
@@ -44,6 +45,24 @@ impl Deref for FetchParam {
 
   fn deref(&self) -> &Self::Target {
     &self.0
+  }
+}
+
+pub struct DateParam(DateTime);
+
+impl FromParam<'_> for DateParam {
+  type Error = ApiError;
+
+  fn from_param(param: &str) -> Result<Self, Self::Error> {
+    let err = || ApiError::InvalidQueryParam(param.into());
+    let parse = |x: &str| x.parse().ok();
+    let mut slice = param.split('.');
+    let d = slice.next().and_then(parse).ok_or_else(err)?;
+    let m = slice.next().and_then(parse).ok_or_else(err)?;
+    let y = slice.next().and_then(|y| y.parse::<i32>().ok()).ok_or_else(err)?;
+
+    let date = DateTime::builder().day(d).month(m).year(y).build();
+    Ok(DateParam(date.map_err(|_| err())?))
   }
 }
 

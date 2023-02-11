@@ -9,7 +9,7 @@ use crate::{
 
 use super::{
   error::{ApiError, CustomApiError},
-  ApiKey,
+  ApiKey, DateParam,
 };
 
 #[get("/")]
@@ -80,8 +80,19 @@ pub async fn poll(cache: &CachePool) -> Result<Json<Poll>, ApiError> {
   Ok(cache.read().await.poll())
 }
 
-#[get("/snapshot/<uid>")]
-pub async fn snapshot_by_id<'a>(uid: &'a str, db: &MongoPool, cache: &CachePool) -> Result<Json<Snapshot>, ApiError> {
+#[get("/date/<date>")]
+pub async fn snapshot_by_date(date: Result<DateParam, ApiError>, db: &MongoPool) -> Result<Json<Snapshot>, ApiError> {
+  let date = date?.0;
+  let s = db
+    .by_date(date)
+    .await?
+    .ok_or_else(|| ApiError::SnapshotNotFound(format!("{}", date)))?;
+
+  Ok(Json(s))
+}
+
+#[get("/uid/<uid>")]
+pub async fn snapshot_by_id(uid: &str, db: &MongoPool, cache: &CachePool) -> Result<Json<Snapshot>, ApiError> {
   if let Ok(Some(s)) = cache.read().await.by_uid(uid).await {
     return Ok(Json(s));
   }
@@ -91,7 +102,7 @@ pub async fn snapshot_by_id<'a>(uid: &'a str, db: &MongoPool, cache: &CachePool)
       cache.write().await.save(&s).await?;
       Ok(Json(s))
     }
-    None => Err(ApiError::SnapshotNotFound(uid.into())),
+    None => Err(ApiError::SnapshotNotFound(uid.to_string())),
   }
 }
 
