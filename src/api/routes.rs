@@ -1,4 +1,4 @@
-use maiq_api_models::polling::Poll;
+use maiq_api_wrapper::polling::Poll;
 use maiq_parser::{default::DefaultGroup, Snapshot, TinySnapshot};
 use rocket::{http::Status, serde::json::Json};
 

@@ -1,9 +1,13 @@
-use std::{collections::HashMap, env};
+#[cfg(feature = "comparing")]
+use log::info;
+#[cfg(feature = "comparing")]
+use maiq_shared::{Fetch, Snapshot};
+#[cfg(feature = "comparing")]
+use std::env;
 
 use chrono::{DateTime, Utc};
-use log::info;
-use maiq_shared::{Fetch, Snapshot};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Poll {
@@ -12,6 +16,7 @@ pub struct Poll {
   pub next_update: DateTime<Utc>,
 }
 
+#[cfg(feature = "comparing")]
 impl Poll {
   pub fn update(&mut self, snapshot: Option<&Snapshot>, fetch: Fetch, next_update: DateTime<Utc>) {
     self.next_update = next_update;
@@ -78,6 +83,7 @@ impl Change {
   }
 }
 
+#[cfg(feature = "comparing")]
 impl SnapshotChanges {
   pub fn distinct(&self, snapshot: &Snapshot) -> Self {
     info!("Comparing changes {:?} with snapshot {:?}", self.uid, snapshot.uid);
