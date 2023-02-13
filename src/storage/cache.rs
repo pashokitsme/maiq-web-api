@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::{collections::HashMap, marker::Send};
 
 use chrono::{DateTime, Duration, Utc};
-use maiq_api_models::polling::{Change, Poll, SnapshotChanges};
+use maiq_api_wrapper::polling::{Change, Poll, SnapshotChanges};
 use maiq_parser::{fetch_snapshot, utils::time::*, Fetch, Snapshot};
 
 use rocket::serde::json::Json;
