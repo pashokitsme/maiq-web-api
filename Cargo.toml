@@ -1,21 +1,20 @@
 [package]
 name = "maiq-web"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 publish = false
-
 
 [profile.release]
 strip = true
 lto = true
-opt-level = "s"
+opt-level = 2
 
 [dependencies]
 tokio = { version = "1.25.0", features = ["macros", "rt-multi-thread"] }
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 mongodb = { version = "2.3.1", features = ["bson-chrono-0_4", "reqwest", "tokio-runtime"] }
 
-maiq-parser = { git = "https://github.com/pashokitsme/maiq-parser", version = "0.7.1" }
+maiq-parser = { git = "https://github.com/pashokitsme/maiq-parser", version = "0.7.2" }
 maiq-api-wrapper = { path = "./maiq-api-wrapper", features = ["comparing"] }
 
 serde = { version = "1.0.152", features = ["serde_derive"] }
