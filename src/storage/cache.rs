@@ -48,11 +48,9 @@ pub struct CachePool {
   cached: Vec<CachedSnapshot>,
   cached_poll: Json<Poll>,
   poll: Poll,
-
-  pub interval: Interval,
+  interval: Interval,
   cache_size: usize,
   cache_age_limit: Duration,
-
   db: MongoPool,
 }
 

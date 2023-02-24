@@ -14,15 +14,13 @@ pub type MongoClient = mongodb::Client;
 pub type MongoError = mongodb::error::Error;
 
 #[derive(Clone)]
-pub struct MongoPool {
-  client: MongoClient,
-}
+pub struct MongoPool(MongoClient);
 
 impl Deref for MongoPool {
   type Target = MongoClient;
 
   fn deref(&self) -> &Self::Target {
-    &self.client
+    &self.0
   }
 }
 
@@ -35,9 +33,7 @@ impl MongoPool {
     opts.app_name = Some("maiq-web".into());
     opts.default_database = Some(env::var(env::DEFAULT_DB).unwrap());
 
-    let client = MongoClient::with_options(opts)?;
-
-    Ok(MongoPool { client })
+    Ok(MongoPool(MongoClient::with_options(opts)?))
   }
 
   async fn get_latest_today(&self) -> Result<Option<Snapshot>, MongoError> {

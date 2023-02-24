@@ -37,8 +37,7 @@ async fn main() {
   let cache = CachePool::new(mongo.clone()).await;
   cache.write().await.update_tick().await;
 
-  let cache_ref = cache.clone();
-  startup_cache_updater(cache_ref);
+  startup_cache_updater(cache.clone());
 
   _ = rocket::build()
     .register("/", catchers![not_found, internal_server_error, unauthorized])
