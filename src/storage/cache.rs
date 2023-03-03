@@ -109,15 +109,13 @@ impl CachePool {
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
-    let snapshot = fetch_snapshot(fetch.clone()).await.ok();
+    let snapshot = fetch_snapshot(fetch).await.ok();
 
     info!("Parsed snapshot {}", snapshot.as_ref().and_then(|s| Some(s.uid.as_str())).unwrap_or("None"));
     let next_update = now() + chrono::Duration::from_std(self.interval.period()).unwrap() + Duration::seconds(5);
-    self
-      .poll
-      .update(snapshot.as_ref(), fetch.clone(), next_update.clone());
+    self.poll.update(snapshot.as_ref(), fetch, next_update.clone());
 
-    if let Some(s) = snapshot.as_ref() {
+    if let Some(s) = snapshot {
       self.save(&s).await?;
       if self.db.by_uid(&s.uid).await?.is_none() {
         self.db.save(&s).await?;
