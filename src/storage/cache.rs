@@ -105,15 +105,15 @@ impl CachePool {
     let today = SnapshotChanges { uid: self.poll.today.uid.clone(), groups: filter(&self.poll.today.groups) };
     let next = SnapshotChanges { uid: self.poll.next.uid.clone(), groups: filter(&self.poll.next.groups) };
 
-    self.cached_poll = Json(Poll { today, next, next_update: self.poll.next_update.clone() });
+    self.cached_poll = Json(Poll { today, next, next_update: self.poll.next_update });
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
     let snapshot = fetch_snapshot(fetch).await.ok();
 
-    info!("Parsed snapshot {}", snapshot.as_ref().and_then(|s| Some(s.uid.as_str())).unwrap_or("None"));
+    info!("Parsed snapshot {}", snapshot.as_ref().map(|s| s.uid.as_str()).unwrap_or("None"));
     let next_update = now() + chrono::Duration::from_std(self.interval.period()).unwrap() + Duration::seconds(5);
-    self.poll.update(snapshot.as_ref(), fetch, next_update.clone());
+    self.poll.update(snapshot.as_ref(), fetch, next_update);
 
     if let Some(s) = snapshot {
       self.save(&s).await?;
@@ -142,11 +142,11 @@ impl CachePool {
 #[rocket::async_trait]
 impl SnapshotPool for CachePool {
   async fn save(&mut self, snapshot: &Snapshot) -> Result<(), ApiError> {
-    if let Some(_) = self.cached.iter_mut().find(|s| s.uid.as_str() == snapshot.uid) {
+    if self.cached.iter().any(|s| *s.uid.as_str() == snapshot.uid) {
       return Ok(());
     }
 
-    if let Some(index) = self.cached.iter_mut().position(|s| s.date == snapshot.date) {
+    if let Some(index) = self.cached.iter().position(|s| s.date == snapshot.date) {
       info!("Removing snapshot by date {} due to receiving new", snapshot.date);
       self.cached.remove(index);
     }

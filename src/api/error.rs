@@ -55,9 +55,9 @@ impl From<ParserError> for ApiError {
   }
 }
 
-impl Into<CustomApiError> for ApiError {
-  fn into(self) -> CustomApiError {
-    CustomApiError { cause: self.cause(), desc: self.to_string(), status: self.status_code() }
+impl From<ApiError> for CustomApiError {
+  fn from(val: ApiError) -> Self {
+    CustomApiError { cause: val.cause(), desc: val.to_string(), status: val.status_code() }
   }
 }
 

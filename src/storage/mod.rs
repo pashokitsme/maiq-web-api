@@ -26,15 +26,15 @@ pub struct SnapshotModel {
   pub groups: Vec<Group>,
 }
 
-impl Into<Snapshot> for SnapshotModel {
-  fn into(self) -> Snapshot {
-    Snapshot { uid: self.uid, date: self.date.to_chrono(), parsed_date: self.parsed_date.to_chrono(), groups: self.groups }
+impl From<SnapshotModel> for Snapshot {
+  fn from(val: SnapshotModel) -> Self {
+    Snapshot { uid: val.uid, date: val.date.to_chrono(), parsed_date: val.parsed_date.to_chrono(), groups: val.groups }
   }
 }
 
-impl Into<Option<Snapshot>> for SnapshotModel {
-  fn into(self) -> Option<Snapshot> {
-    Some(self.into())
+impl From<SnapshotModel> for Option<Snapshot> {
+  fn from(val: SnapshotModel) -> Self {
+    Some(val.into())
   }
 }
 

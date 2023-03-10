@@ -75,9 +75,9 @@ impl<'r> FromRequest<'r> for ApiKey {
   async fn from_request(req: &'r Request<'_>) -> Outcome<ApiKey, Self::Error> {
     fn is_valid(key: &str) -> bool {
       lazy_static::lazy_static! {
-        static ref RIGHT_KEY: String = env::var(env::API_SECRET).unwrap();
+        static ref KEY: String = env::var(env::API_SECRET).unwrap();
       }
-      key == *RIGHT_KEY
+      key == *KEY
     }
 
     match req.headers().get_one("x-api-key") {
@@ -88,7 +88,7 @@ impl<'r> FromRequest<'r> for ApiKey {
   }
 }
 
-pub fn map_weekday<'a>(weekday: &'a str) -> Option<Weekday> {
+pub fn map_weekday(weekday: &str) -> Option<Weekday> {
   let day = match weekday.to_lowercase().as_str() {
     "mon" => Weekday::Mon,
     "tue" => Weekday::Tue,

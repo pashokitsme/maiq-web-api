@@ -108,5 +108,5 @@ pub async fn snapshot_by_id(uid: &str, db: &MongoPool, cache: &CachePool) -> Res
 
 #[get("/cached")]
 pub async fn cached(_secret: ApiKey, cache: &CachePool) -> Result<Json<Vec<Snapshot>>, ApiError> {
-  Ok(Json(cache.read().await.collect_all().clone()))
+  Ok(Json(cache.read().await.collect_all()))
 }
