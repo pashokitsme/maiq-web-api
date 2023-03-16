@@ -46,7 +46,7 @@ pub struct SnapshotChanges {
 #[derive(Serialize, Deserialize, PartialEq, Default, Debug, Clone)]
 #[serde(tag = "change", content = "uid")]
 pub enum Change {
-  Update(String),
+  Update(Option<String>),
   New(String),
   Same(Option<String>),
   #[default]
@@ -56,8 +56,8 @@ pub enum Change {
 impl Change {
   pub fn uid(&self) -> Option<&str> {
     match self {
-      Change::Same(Some(x)) | Change::New(x) | Change::Update(x) => Some(x),
-      Change::None | Change::Same(None) => None,
+      Change::Same(Some(x)) | Change::New(x) | Change::Update(Some(x)) => Some(x),
+      Change::None | Change::Same(None) | Change::Update(None) => None,
     }
   }
 
@@ -104,11 +104,12 @@ impl SnapshotChanges {
 
       *group_change = match (prev, new) {
         (Some(prev), None) => match prev {
-          Change::None => Change::Same(None),
+          Change::None | Change::Update(None) => Change::Same(None),
+          Change::Same(Some(_)) | Change::New(_) | Change::Update(Some(_)) => Change::Update(None),
           rest => rest.clone(),
         },
         (Some(prev), Some(new)) if prev.is_same_with(&*new.1) => Change::Same(Some(new.1.to_string())),
-        (Some(prev), Some(new)) if prev.is_not_same_with(&*new.1) => Change::Update(new.1.to_string()),
+        (Some(prev), Some(new)) if prev.is_not_same_with(&*new.1) => Change::Update(Some(new.1.to_string())),
         (None, Some(new)) => Change::New(new.1.to_string()),
         _ => continue,
       };

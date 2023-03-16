@@ -16,6 +16,7 @@ use api::{
 };
 
 use chrono::NaiveTime;
+
 use maiq_parser::utils;
 use rocket::{
   fairing::{Fairing, Info, Kind},
