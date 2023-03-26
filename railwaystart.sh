@@ -1,2 +1,0 @@
-cd bin
-./maiq-web
