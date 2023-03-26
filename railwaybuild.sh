@@ -1,4 +1,4 @@
-mkdir bin/default
+mkdir -p bin/default
 ls default
 cp -r default bin
 cargo build --release
