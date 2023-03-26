@@ -35,7 +35,7 @@ async fn main() {
   {
     use std::path::PathBuf;
     info!("Path: {}", args().next().unwrap());
-    let paths = fs::read_dir("default")
+    let paths = fs::read_dir("./default")
       .unwrap()
       .map(|d| d.unwrap().path())
       .collect::<Vec<PathBuf>>();
