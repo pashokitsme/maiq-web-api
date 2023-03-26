@@ -90,7 +90,6 @@ impl CachePool {
   }
 
   pub fn reset(&mut self) {
-    warn!("Poll dropped!");
     self.poll = Poll::default();
   }
 
