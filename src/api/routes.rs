@@ -1,4 +1,4 @@
-use maiq_api_wrapper::polling::Poll;
+use maiq_api_wrapper::Poll;
 use maiq_parser::{default::DefaultGroup, Snapshot, TinySnapshot};
 use rocket::{http::Status, serde::json::Json};
 
@@ -77,7 +77,7 @@ pub async fn latest_group(
 
 #[get("/poll")]
 pub async fn poll(cache: &CachePool) -> Result<Json<Poll>, ApiError> {
-  Ok(cache.read().await.poll())
+  Ok(Json(cache.read().await.poll()))
 }
 
 #[get("/date/<date>")]
