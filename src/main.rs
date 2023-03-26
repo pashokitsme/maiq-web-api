@@ -35,11 +35,11 @@ async fn main() {
   {
     use std::path::PathBuf;
     info!("Path: {}", args().next().unwrap());
-    let dirs = fs::read_dir("./")
+    let paths = fs::read_dir("default")
       .unwrap()
       .map(|d| d.unwrap().path())
       .collect::<Vec<PathBuf>>();
-    info!("Folders: {:?}", dirs);
+    info!("Paths: {:?}", paths);
   }
   maiq_parser::warmup_defaults();
 
