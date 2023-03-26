@@ -8,7 +8,7 @@ mod api;
 mod env;
 mod storage;
 
-use std::sync::Arc;
+use std::{env::args, fs, sync::Arc};
 
 use api::{
   error::{internal_server_error, not_found, unauthorized},
@@ -32,6 +32,15 @@ async fn main() {
   dotenvy::dotenv().ok();
   pretty_env_logger::init();
   env::check_env_vars();
+  {
+    use std::path::PathBuf;
+    info!("Path: {}", args().next().unwrap());
+    let dirs = fs::read_dir("./")
+      .unwrap()
+      .map(|d| d.unwrap().path())
+      .collect::<Vec<PathBuf>>();
+    info!("Folders: {:?}", dirs);
+  }
   maiq_parser::warmup_defaults();
 
   let mongo = MongoPool::init().await.expect("Error while connecting to database");
