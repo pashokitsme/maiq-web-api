@@ -26,12 +26,11 @@ impl Deref for MongoPool {
 
 impl MongoPool {
   pub async fn init() -> Result<MongoPool, MongoError> {
-    let url = dotenvy::var(env::DB_URL).unwrap();
     info!("Connecting to database..");
 
-    let mut opts = ClientOptions::parse(url).await?;
+    let mut opts = ClientOptions::parse(env::db_url()).await?;
     opts.app_name = Some("maiq-web".into());
-    opts.default_database = Some(env::var(env::DEFAULT_DB).unwrap());
+    opts.default_database = Some(env::db_default_collection());
 
     Ok(MongoPool(MongoClient::with_options(opts)?))
   }

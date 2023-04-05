@@ -15,7 +15,7 @@ use crate::{api::error::ApiError, env, storage::MongoPool};
 use super::SnapshotPool;
 
 pub fn interval() -> Interval {
-  time::interval(std::time::Duration::from_secs(env::parse_var(env::UPDATE_INTERVAL).unwrap()))
+  time::interval(std::time::Duration::from_secs(env::update_rate()))
 }
 
 struct CachedSnapshot {
@@ -57,8 +57,8 @@ impl CachePool {
     let mut pool = Self {
       interval: interval(),
       cached: vec![],
-      cache_size: env::parse_var(env::CACHE_SIZE).unwrap(),
-      cache_age_limit: Duration::seconds(env::parse_var(env::CACHE_AGE_LIMIT).unwrap()),
+      cache_size: env::cache_size(),
+      cache_age_limit: *env::cache_age_limit(),
       poll: Poll::default(),
       db: mongo,
     };

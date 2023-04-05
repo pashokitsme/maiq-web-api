@@ -73,16 +73,9 @@ impl<'r> FromRequest<'r> for ApiKey {
   type Error = ApiError;
 
   async fn from_request(req: &'r Request<'_>) -> Outcome<ApiKey, Self::Error> {
-    fn is_valid(key: &str) -> bool {
-      lazy_static::lazy_static! {
-        static ref KEY: String = env::var(env::API_SECRET).unwrap();
-      }
-      key == *KEY
-    }
-
     match req.headers().get_one("x-api-key") {
       None => Outcome::Failure((Status::Unauthorized, ApiError::InvalidApiKey)),
-      Some(key) if is_valid(key) => Outcome::Success(ApiKey),
+      Some(key) if key == env::api_secret() => Outcome::Success(ApiKey),
       Some(_) => Outcome::Failure((Status::Unauthorized, ApiError::InvalidApiKey)),
     }
   }

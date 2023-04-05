@@ -1,53 +1,77 @@
 use std::str::FromStr;
 
-macro_rules! env_var {
-  ($var_name: ident, $env_name: literal) => {
-    pub const $var_name: &'static str = $env_name;
-  };
-  ($var_name: ident) => {
-    pub const $var_name: &'static str = stringify!($var_name);
+use chrono::Duration;
+use lazy_static::lazy_static;
+use std::ops::Deref;
+
+macro_rules! env_params {
+  {$($inner: ty as $tt: ident { $closure: expr } ),*} => {
+    $(
+      #[derive(Debug, Clone, Copy)]
+      pub struct $tt($inner);
+
+      impl Deref for $tt {
+        type Target = $inner;
+
+        fn deref(&self) -> &Self::Target {
+          &self.0
+        }
+      }
+
+      impl FromStr for $tt {
+        type Err = ();
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+          Ok($tt($closure(s).map_err(|_| ())?))
+        }
+      }
+    )*
   };
 }
 
-env_var!(API_SECRET);
+macro_rules! vars {
+  {$($getter: ident ($var_name: ident) -> $ty: tt),*} => {
 
-env_var!(UPDATE_INTERVAL, "UPDATE_CACHE_INTERVAL_SECS");
-env_var!(CACHE_SIZE);
-env_var!(CACHE_AGE_LIMIT, "CACHE_AGE_LIMIT_SECS");
+    lazy_static! {
+      $(static ref $var_name: $ty = self::parse_var::<$ty>(stringify!($var_name));)*
+    }
 
-env_var!(DB_URL, "DATABASE_CONNECTION_URL");
-env_var!(DEFAULT_DB, "DEFAULT_DATABASE_NAME");
+    $(pub fn $getter() -> $ty { $var_name.clone() })*
 
-pub fn parse_var<T: FromStr>(var: &'static str) -> Option<T> {
-  self::var(var).and_then(|x| x.parse().ok())
+    pub fn init() {
+      $(
+        self::var(stringify!($var_name))
+          .and_then(|x| x.parse::<$ty>().ok())
+          .is_none()
+          .then(|| warn!("Value {} of type {} is missing. Fallback to default", stringify!($var_name), stringify!($ty)));
+      )*
+    }
+  };
 }
 
 pub fn var(var: &'static str) -> Option<String> {
   dotenvy::var(var).ok()
 }
 
-pub fn check<T: FromStr>(var: &'static str) -> bool {
-  match parse_var::<T>(var) {
-    Some(_) => true,
-    None => {
-      error!("Var {}: {} is not present", var, std::any::type_name::<T>().split("::").last().unwrap());
-      false
-    }
+pub fn parse_var<T: FromStr + Default>(var: &'static str) -> T {
+  self::var(var).and_then(|x| x.parse().ok()).unwrap_or_default()
+}
+
+env_params! {
+  Duration as Secs { |s: &str| s.parse().map(Duration::seconds) }
+}
+
+impl Default for Secs {
+  fn default() -> Self {
+    Self(Duration::seconds(10))
   }
 }
 
-pub fn check_env_vars() {
-  info!("Validating .env vars");
-  let mut failed = false;
-
-  failed |= !check::<String>(API_SECRET);
-
-  failed |= !check::<u64>(UPDATE_INTERVAL);
-  failed |= !check::<usize>(CACHE_SIZE);
-  failed |= !check::<u64>(CACHE_AGE_LIMIT);
-
-  failed |= !check::<String>(DB_URL);
-  failed |= !check::<String>(DEFAULT_DB);
-
-  failed.then(|| panic!("Not all environment args are set"));
+vars! {
+  update_rate (UPDATE_CACHE_INTERVAL_SECS) -> u64,
+  cache_size (CACHE_SIZE) -> usize,
+  cache_age_limit (CACHE_AGE_LIMIT_SECS) -> Secs,
+  db_url (DATABASE_CONNECTION_URL) -> String,
+  db_default_collection (DEFAULT_DATABASE_NAME) -> String,
+  api_secret (API_SECRET) -> String
 }

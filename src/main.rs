@@ -31,7 +31,7 @@ use tokio::sync::RwLock;
 async fn main() {
   dotenvy::dotenv().ok();
   pretty_env_logger::init();
-  env::check_env_vars();
+  env::init();
   maiq_parser::warmup_defaults();
 
   let mongo = MongoPool::init().await.expect("Error while connecting to database");
