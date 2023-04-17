@@ -19,23 +19,19 @@ pub async fn index() -> Result<CustomApiError, ApiError> {
 
 #[get("/default/<weekday>/<group>")]
 pub fn default(weekday: &str, group: &str) -> Result<Json<DefaultGroup>, ApiError> {
-  macro_rules! not_found {
-    () => {
-      ApiError::DefaultNotFound(weekday.into(), group.into())
-    };
-  }
+  let not_found = || ApiError::DefaultNotFound(weekday.into(), group.into());
 
   let repls = &*maiq_parser::replacer::REPLECEMENTS;
-  let weekday = map_weekday(weekday).ok_or(not_found!())?;
+  let weekday = map_weekday(weekday).ok_or_else(not_found)?;
   repls
     .iter()
     .find(|d| d.day == weekday)
-    .ok_or(not_found!())?
+    .ok_or_else(not_found)?
     .groups
     .iter()
     .find(|g| g.name.as_str() == group)
     .map(|g| Json(g.clone()))
-    .ok_or(not_found!())
+    .ok_or_else(not_found)
 }
 
 #[get("/latest/<fetch>")]

@@ -12,10 +12,7 @@ macro_rules! env_params {
 
       impl Deref for $tt {
         type Target = $inner;
-
-        fn deref(&self) -> &Self::Target {
-          &self.0
-        }
+        fn deref(&self) -> &Self::Target { &self.0 }
       }
 
       impl FromStr for $tt {
@@ -29,9 +26,18 @@ macro_rules! env_params {
   };
 }
 
+macro_rules! env_default {
+  {$($tt: ty => $default: expr),*} => {
+    $(
+      impl Default for $tt {
+        fn default() -> Self { Self($default) }
+      }
+    )*
+  }
+}
+
 macro_rules! vars {
   {$($getter: ident ($var_name: ident) -> $ty: tt),*} => {
-
     lazy_static! {
       $(static ref $var_name: $ty = self::parse_var::<$ty>(stringify!($var_name));)*
     }
@@ -61,10 +67,8 @@ env_params! {
   Duration as Secs { |s: &str| s.parse().map(Duration::seconds) }
 }
 
-impl Default for Secs {
-  fn default() -> Self {
-    Self(Duration::seconds(10))
-  }
+env_default! {
+  Secs => Duration::seconds(10)
 }
 
 vars! {
