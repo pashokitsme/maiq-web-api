@@ -4,8 +4,9 @@
 Стек: [**Rocket**](https://rocket.rs/) + **MongoDB** + [**maiq-parser**](https://github.com/pashokitsme/maiq-parser)
 
 
-## Докуменация (немного устарела)
-
+## Докуменация (устарела)
+> Обрати внимание на Postman-коллекцию, она актуальна \
+> \
 > Хост API: https://maiq.pashok.me/ \
 [/docs](https://github.com/pashokitsme/maiq-web-api/tree/master/docs)
 >> [/api_routes.md](https://github.com/pashokitsme/maiq-web-api/blob/master/docs/api_routes.md) - пути API, методы и их параметры \

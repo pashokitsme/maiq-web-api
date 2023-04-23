@@ -1,0 +1,197 @@
+{
+	"info": {
+		"_postman_id": "e64be7cb-5fa0-4d3a-8ca1-6c4025dddf47",
+		"name": "maiq-web",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "26412814",
+		"_collection_link": "https://lunar-station-286050.postman.co/workspace/My-Workspace~10362def-5a02-4770-8be5-cf47ba942c3b/collection/26412814-e64be7cb-5fa0-4d3a-8ca1-6c4025dddf47?action=share&creator=26412814&source=collection_link"
+	},
+	"item": [
+		{
+			"name": "latest",
+			"item": [
+				{
+					"name": "latest",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/latest/:fetch",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"latest",
+								":fetch"
+							],
+							"variable": [
+								{
+									"key": "fetch",
+									"value": "today",
+									"description": "today | next"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "latest of group",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/latest/:fetch/:group",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"latest",
+								":fetch",
+								":group"
+							],
+							"variable": [
+								{
+									"key": "fetch",
+									"value": "next",
+									"description": "today | next"
+								},
+								{
+									"key": "group",
+									"value": null,
+									"description": "group name"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "default",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/default/:weekday/:group_name",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"default",
+						":weekday",
+						":group_name"
+					],
+					"variable": [
+						{
+							"key": "weekday",
+							"value": "mon",
+							"description": "mon, tue ..."
+						},
+						{
+							"key": "group_name",
+							"value": "Ир3-21",
+							"description": "group name"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "poll",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/poll",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"poll"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "date",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/date/:date",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"date",
+						":date"
+					],
+					"variable": [
+						{
+							"key": "date",
+							"value": "24.04.2023",
+							"description": "dd.mm.YY"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "exact",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/uid/:uid",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"uid",
+						":uid"
+					],
+					"variable": [
+						{
+							"key": "uid",
+							"value": "",
+							"description": "i.e. 1pw4xa0y1j"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "host",
+			"value": "https://maiq.pashok.me/api",
+			"type": "string"
+		}
+	]
+}
