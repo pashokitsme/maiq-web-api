@@ -1,4 +1,3 @@
-use maiq_parser::ParserError;
 use rocket::{
   http::{ContentType, Method, Status},
   response::{Responder, Result},
@@ -30,9 +29,6 @@ pub enum ApiError {
   #[error("Requested default for `{1}` for `{0}` not found")]
   DefaultNotFound(String, String),
 
-  #[error("{0}")]
-  ParserError(ParserError),
-
   #[error("Invalid query param provided. Param value is `{0}`")]
   InvalidQueryParam(String),
 
@@ -49,12 +45,6 @@ impl From<mongodb::error::Error> for ApiError {
   }
 }
 
-impl From<ParserError> for ApiError {
-  fn from(err: ParserError) -> Self {
-    ApiError::ParserError(err)
-  }
-}
-
 impl From<ApiError> for CustomApiError {
   fn from(val: ApiError) -> Self {
     CustomApiError { cause: val.cause(), desc: val.to_string(), status: val.status_code() }
@@ -68,7 +58,6 @@ impl ApiError {
       ApiError::Database(..) => Status::InternalServerError,
       ApiError::SnapshotNotFound(..) => Status::NotFound,
       ApiError::DefaultNotFound(..) => Status::NotFound,
-      ApiError::ParserError(..) => Status::InternalServerError,
       ApiError::InvalidQueryParam(..) => Status::BadRequest,
       ApiError::InvalidApiKey => Status::Unauthorized,
       ApiError::Unknown => Status::InternalServerError,
@@ -81,7 +70,6 @@ impl ApiError {
       ApiError::Database(..) => "db_err",
       ApiError::SnapshotNotFound(..) => "snapshot_not_found",
       ApiError::DefaultNotFound(..) => "default_not_found",
-      ApiError::ParserError(..) => "internal_parser_err",
       ApiError::InvalidQueryParam(..) => "invalid_query_param",
       ApiError::InvalidApiKey => "invalid_api_key",
       ApiError::Unknown => "unknown",
@@ -122,11 +110,3 @@ pub fn not_found(req: &Request) -> ApiError {
 pub fn internal_server_error(_: &Request) -> ApiError {
   ApiError::Unknown
 }
-
-// todo: make it work
-/*
-#[catch(405)]
-pub fn method_not_allowed(req: &Request) -> ApiError {
-  ApiError::NotAllowed(req.uri().path().to_string(), req.method())
-}
-*/

@@ -18,19 +18,11 @@ pub async fn index() -> Result<CustomApiError, ApiError> {
 }
 
 #[get("/default/<weekday>/<group>")]
-pub fn default(weekday: &str, group: &str) -> Result<Json<DefaultGroup>, ApiError> {
+pub fn default<'a>(weekday: &str, group: &'a str) -> Result<Json<&'a DefaultGroup>, ApiError> {
   let not_found = || ApiError::DefaultNotFound(weekday.into(), group.into());
-
-  let repls = &*maiq_parser::replacer::REPLECEMENTS;
   let weekday = map_weekday(weekday).ok_or_else(not_found)?;
-  repls
-    .iter()
-    .find(|d| d.day == weekday)
-    .ok_or_else(not_found)?
-    .groups
-    .iter()
-    .find(|g| g.name.as_str() == group)
-    .map(|g| Json(g.clone()))
+  maiq_parser::default_for(weekday, group)
+    .map(Json)
     .ok_or_else(not_found)
 }
 

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Duration, Utc};
 use maiq_api_wrapper::Poll;
 use maiq_parser::compare::distinct;
-use maiq_parser::{fetch_snapshot, utils::time::*, Fetch, Snapshot};
+use maiq_parser::{snapshot_from_remote, utils::time::*, Fetch, Snapshot};
 
 use tokio::time;
 use tokio::{sync::RwLock, time::Interval};
@@ -94,7 +94,7 @@ impl CachePool {
   }
 
   async fn update(&mut self, fetch: Fetch) -> Result<(), ApiError> {
-    let snapshot = fetch_snapshot(&fetch).await.ok();
+    let snapshot = snapshot_from_remote(&fetch).await.ok();
 
     info!("Parsed snapshot {}", snapshot.as_ref().map(|s| s.uid.as_str()).unwrap_or("-"));
     if let Some(s) = snapshot.as_ref() {

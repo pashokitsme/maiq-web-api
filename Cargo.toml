@@ -14,7 +14,7 @@ tokio = { version = "1.25.0", features = ["macros", "rt-multi-thread"] }
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 mongodb = { version = "2.3.1", features = ["bson-chrono-0_4", "reqwest", "tokio-runtime"] }
 
-maiq-parser = { git = "https://github.com/pashokitsme/maiq-parser", version = "0.7.6" }
+maiq-parser = { git = "https://github.com/pashokitsme/maiq-parser", version = "0.8.3", branch="tl" }
 maiq-api-wrapper = { path = "maiq-api-wrapper"}
 
 serde = { version = "1.0.152", features = ["serde_derive"] }
