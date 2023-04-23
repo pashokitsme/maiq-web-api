@@ -53,6 +53,10 @@ pub async fn default(group: &str, weekday: Weekday) -> Result<DefaultGroup, ApiE
   get(&format!("{}/default/{}/{}", *API_HOST, weekday, group)).await
 }
 
+pub async fn groups() -> Result<Vec<String>, ApiError> {
+  get(&format!("{}/groups", *API_HOST)).await
+}
+
 pub async fn poll() -> Result<Poll, ApiError> {
   get(&*POLL_URL).await
 }

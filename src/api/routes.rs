@@ -13,8 +13,13 @@ use super::{
 };
 
 #[get("/")]
-pub async fn index() -> Result<CustomApiError, ApiError> {
+pub fn index() -> Result<CustomApiError, ApiError> {
   Ok(CustomApiError { cause: "index_route", desc: "Hey there, stranger".into(), status: Status::Ok })
+}
+
+#[get("/groups")]
+pub fn groups() -> Json<Vec<String>> {
+  Json(maiq_parser::env::groups().into())
 }
 
 #[get("/default/<weekday>/<group>")]
