@@ -76,7 +76,8 @@ impl SnapshotPool for MongoPool {
     let opts = FindOneAndReplaceOptions::builder().upsert(true).build();
     snapshots
       .find_one_and_replace(doc! { "date": model.date }, model, opts)
-      .await?;
+      .await
+      .unwrap();
 
     Ok(())
   }

@@ -76,12 +76,10 @@ pub async fn poll(cache: &CachePool) -> Result<Json<Poll>, ApiError> {
 #[get("/date/<date>")]
 pub async fn snapshot_by_date(date: Result<DateParam, ApiError>, db: &MongoPool) -> Result<Json<Snapshot>, ApiError> {
   let date = date?.0;
-  let s = db
-    .by_date(date)
+  db.by_date(date)
     .await?
-    .ok_or_else(|| ApiError::SnapshotNotFound(format!("{}", date)))?;
-
-  Ok(Json(s))
+    .map(Json)
+    .ok_or_else(|| ApiError::SnapshotNotFound(format!("{}", date)))
 }
 
 #[get("/uid/<uid>")]
