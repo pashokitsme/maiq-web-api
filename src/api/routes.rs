@@ -42,8 +42,10 @@ pub async fn latest_group(fetch: FetchParam, group: &str, cache: &CachePool) -> 
     .await
     .latest(fetch)
     .await?
+    .map(|s| s.tiny(group))
+    .filter(|t| t.group.is_some())
     .ok_or(fetch.into())
-    .map(|s| Json(s.tiny(group)))
+    .map(Json)
 }
 
 #[get("/poll")]
