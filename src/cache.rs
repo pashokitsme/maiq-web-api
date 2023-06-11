@@ -10,9 +10,14 @@ use maiq_parser::{snapshot_from_remote, utils::time::*, Fetch, Snapshot};
 use tokio::time;
 use tokio::{sync::RwLock, time::Interval};
 
-use crate::{api::error::ApiError, env, storage::MongoPool};
+use crate::{api::error::ApiError, env};
 
-use super::SnapshotPool;
+#[rocket::async_trait]
+pub trait SnapshotPool {
+  async fn save(&mut self, snapshot: &Snapshot) -> Result<(), ApiError>;
+  async fn latest(&self, mode: Fetch) -> Result<Option<Snapshot>, ApiError>;
+  async fn by_uid<T: AsRef<str> + Send>(&self, uid: T) -> Result<Option<Snapshot>, ApiError>;
+}
 
 pub fn interval() -> Interval {
   time::interval(std::time::Duration::from_secs(env::update_rate()))
@@ -49,18 +54,16 @@ pub struct CachePool {
   interval: Interval,
   cache_size: usize,
   cache_age_limit: Duration,
-  db: MongoPool,
 }
 
 impl CachePool {
-  pub async fn new(mongo: MongoPool) -> Arc<RwLock<Self>> {
+  pub async fn new() -> Arc<RwLock<Self>> {
     let mut pool = Self {
       interval: interval(),
       cached: vec![],
       cache_size: env::cache_size(),
       cache_age_limit: *env::cache_age_limit(),
       poll: Poll::default(),
-      db: mongo,
     };
 
     pool.update_tick().await;
@@ -99,9 +102,6 @@ impl CachePool {
     info!("Parsed snapshot {}", snapshot.as_ref().map(|s| s.uid.as_str()).unwrap_or("-"));
     if let Some(s) = snapshot.as_ref() {
       self.save(s).await?;
-      if self.db.by_uid(&s.uid).await?.is_none() {
-        self.db.save(s).await?;
-      }
     }
 
     match fetch {

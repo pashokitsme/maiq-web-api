@@ -1,3 +1,4 @@
+use maiq_parser::Fetch;
 use rocket::{
   http::{ContentType, Method, Status},
   response::{Responder, Result},
@@ -48,6 +49,17 @@ impl From<mongodb::error::Error> for ApiError {
 impl From<ApiError> for CustomApiError {
   fn from(val: ApiError) -> Self {
     CustomApiError { cause: val.cause(), desc: val.to_string(), status: val.status_code() }
+  }
+}
+
+impl From<Fetch> for ApiError {
+  fn from(val: Fetch) -> Self {
+    let val = match val {
+      Fetch::Today => "today",
+      Fetch::Next => "next",
+    };
+
+    ApiError::SnapshotNotFound(val.into())
   }
 }
 

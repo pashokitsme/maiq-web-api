@@ -5,8 +5,8 @@ extern crate rocket;
 extern crate log;
 
 mod api;
+mod cache;
 mod env;
-mod storage;
 
 use std::sync::Arc;
 
@@ -24,7 +24,7 @@ use rocket::{
   Request, Response,
 };
 
-use storage::{cache::CachePool, mongo::MongoPool};
+use cache::CachePool;
 use tokio::sync::RwLock;
 
 #[rocket::main]
@@ -34,8 +34,7 @@ async fn main() {
   env::init();
   maiq_parser::warmup_defaults();
 
-  let mongo = MongoPool::init().await.expect("Error while connecting to database");
-  let cache = CachePool::new(mongo.clone()).await;
+  let cache = CachePool::new().await;
   cache.write().await.update_tick().await;
 
   startup_cache_updater(cache.clone());
@@ -43,10 +42,8 @@ async fn main() {
   _ = rocket::build()
     .register("/", catchers![not_found, internal_server_error, unauthorized])
     .mount("/", routes![index])
-    .mount("/api", routes![index, latest, latest_group, poll, snapshot_by_date, snapshot_by_id, default, groups])
-    .mount("/api/dev", routes![cached])
+    .mount("/api", routes![index, latest, latest_group, poll, snapshot_by_id, default, groups])
     .attach(Cors)
-    .manage(mongo)
     .manage(cache)
     .launch()
     .await
@@ -92,7 +89,7 @@ pub fn startup_cache_updater(cache: Arc<RwLock<CachePool>>) {
       let cache_ref = cache.clone();
 
       _ = tokio::spawn(async move {
-        let mut interval = storage::cache::interval();
+        let mut interval = cache::interval();
         interval.tick().await;
         loop {
           info!("Sleeping for {:?}", interval.period());

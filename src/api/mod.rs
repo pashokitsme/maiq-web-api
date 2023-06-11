@@ -1,29 +1,17 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
-use chrono::Weekday;
-use mongodb::bson::DateTime;
-use rocket::{
-  http::Status,
-  request::{FromParam, FromRequest, Outcome},
-  Request, State,
-};
-
-use tokio::sync::RwLock;
-
-use crate::{
-  env,
-  storage::{cache, mongo},
-};
-use maiq_parser::Fetch;
-
 use self::error::ApiError;
+use crate::cache;
+use chrono::Weekday;
+use maiq_parser::Fetch;
+use rocket::{request::FromParam, State};
+use tokio::sync::RwLock;
 
 pub mod error;
 pub mod routes;
 
 type CachePool = State<Arc<RwLock<cache::CachePool>>>;
-type MongoPool = State<mongo::MongoPool>;
 
 #[derive(Debug)]
 pub struct FetchParam(Fetch);
@@ -45,39 +33,6 @@ impl Deref for FetchParam {
 
   fn deref(&self) -> &Self::Target {
     &self.0
-  }
-}
-
-pub struct DateParam(DateTime);
-
-impl FromParam<'_> for DateParam {
-  type Error = ApiError;
-
-  fn from_param(param: &str) -> Result<Self, Self::Error> {
-    let err = || ApiError::InvalidQueryParam(param.into());
-    let parse = |x: &str| x.parse().ok();
-    let mut slice = param.split('.');
-    let d = slice.next().and_then(parse).ok_or_else(err)?;
-    let m = slice.next().and_then(parse).ok_or_else(err)?;
-    let y = slice.next().and_then(|y| y.parse::<i32>().ok()).ok_or_else(err)?;
-
-    let date = DateTime::builder().day(d).month(m).year(y).build();
-    Ok(DateParam(date.map_err(|_| err())?))
-  }
-}
-
-pub struct ApiKey;
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for ApiKey {
-  type Error = ApiError;
-
-  async fn from_request(req: &'r Request<'_>) -> Outcome<ApiKey, Self::Error> {
-    match req.headers().get_one("x-api-key") {
-      None => Outcome::Failure((Status::Unauthorized, ApiError::InvalidApiKey)),
-      Some(key) if key == env::api_secret() => Outcome::Success(ApiKey),
-      Some(_) => Outcome::Failure((Status::Unauthorized, ApiError::InvalidApiKey)),
-    }
   }
 }
 

@@ -74,8 +74,5 @@ env_default! {
 vars! {
   update_rate (UPDATE_CACHE_INTERVAL_SECS) -> u64,
   cache_size (CACHE_SIZE) -> usize,
-  cache_age_limit (CACHE_AGE_LIMIT_SECS) -> Secs,
-  db_url (DATABASE_CONNECTION_URL) -> String,
-  db_default_collection (DEFAULT_DATABASE_NAME) -> String,
-  api_secret (API_SECRET) -> String
+  cache_age_limit (CACHE_AGE_LIMIT_SECS) -> Secs
 }
